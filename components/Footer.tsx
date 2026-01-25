@@ -1,6 +1,6 @@
 import React from 'react';
 import { TabType } from '../types';
-import { Instagram, Twitter, Linkedin, ArrowRight } from 'lucide-react';
+import { Instagram, Linkedin, ArrowRight } from 'lucide-react';
 
 interface FooterProps {
   onNav: (tab: TabType) => void;
@@ -8,40 +8,35 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ onNav }) => {
   return (
-    <footer className="w-full bg-stone-50 py-16 md:py-24 mt-auto">
-      <div className="max-w-[1800px] mx-auto px-6 flex flex-col items-center gap-12">
+    <footer className="w-full bg-white py-20 mt-auto border-t border-stone-50">
+      <div className="max-w-[1800px] mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-end md:items-center gap-12">
         
-        {/* Journalism / Cross-Link Section */}
-        <div className="w-full max-w-lg text-center space-y-6">
-          <h3 className="text-xl font-bold heading-font text-stone-900">Journalismus</h3>
-          <p className="text-stone-500 text-sm leading-relaxed font-medium">
-            Michael fotografiert nicht nur, sondern schreibt auch Sachen über Technologie, AI, Kultur und Science Fiction ins Internet.
-          </p>
-          
-          <div className="pt-2">
-            <a 
+        {/* Left: Credits */}
+        <div className="text-left space-y-4">
+           <h3 className="text-sm font-bold tracking-widest uppercase heading-font text-stone-900">Michael Förtsch</h3>
+           <p className="text-[10px] text-stone-400 uppercase tracking-widest">
+             Photography & Direction<br/>
+             Based in Berlin, Germany
+           </p>
+        </div>
+
+        {/* Right: Socials & External */}
+        <div className="flex flex-col items-end gap-6">
+           <a 
               href="https://michaelfoertsch.de" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 bg-stone-900 text-white px-8 py-4 text-xs font-bold tracking-widest uppercase hover:bg-stone-700 transition-all hover:gap-4"
+              className="group flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase text-stone-900 hover:text-stone-500 transition-colors"
             >
               michaelfoertsch.de
-              <ArrowRight size={14} />
+              <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
             </a>
-          </div>
-        </div>
 
-        {/* Socials & Links */}
-        <div className="w-full flex flex-col md:flex-row justify-between items-center border-t border-stone-200 pt-12 gap-8">
-           <div className="flex gap-6">
-             <a href="#" className="p-2 bg-black text-white rounded-full hover:opacity-80 transition-opacity"><Instagram size={16} /></a>
-             <a href="#" className="p-2 bg-black text-white rounded-full hover:opacity-80 transition-opacity"><Twitter size={16} /></a>
-             <a href="#" className="p-2 bg-black text-white rounded-full hover:opacity-80 transition-opacity"><Linkedin size={16} /></a>
-           </div>
-
-           <div className="flex gap-8 text-[10px] uppercase tracking-widest font-medium text-stone-500">
-             <button onClick={() => { onNav('impressum'); window.scrollTo(0,0); }} className="hover:text-stone-900">Impressum</button>
-             <button onClick={() => { onNav('contact'); window.scrollTo(0,0); }} className="hover:text-stone-900">Kontakt</button>
+           <div className="flex gap-6 items-center">
+             <a href="#" className="text-stone-400 hover:text-stone-900 transition-colors"><Instagram size={18} strokeWidth={1.5} /></a>
+             <a href="#" className="text-stone-400 hover:text-stone-900 transition-colors"><Linkedin size={18} strokeWidth={1.5} /></a>
+             <span className="h-4 w-px bg-stone-200"></span>
+             <button onClick={() => { onNav('impressum'); window.scrollTo(0,0); }} className="text-[10px] uppercase tracking-widest text-stone-400 hover:text-stone-900">Impressum</button>
            </div>
         </div>
       </div>

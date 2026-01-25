@@ -20,7 +20,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isDemoMode, setIsDemoMode] = useState(false);
 
-  // Dynamic categories based on loaded photos (Maintenance-free!)
+  // Dynamic categories based on loaded photos
   const categories = useMemo(() => {
     if (!allPhotos || allPhotos.length === 0) return ['All'];
     const cats = new Set(allPhotos.map(p => p.client).filter(Boolean));
@@ -30,13 +30,11 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadGallery = async () => {
       try {
-        // Use relative path './' for GitHub Pages compatibility
         const response = await fetch('./gallery.json'); 
         if (!response.ok) throw new Error('No manifest found');
         
         const manifest = await response.json();
         
-        // If manifest is empty array (fallback from deploy script) or invalid
         if (!Array.isArray(manifest) || manifest.length === 0) {
             throw new Error('Manifest is empty');
         }
@@ -102,7 +100,7 @@ const App: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white text-stone-900">
-        <div className="animate-pulse text-xs tracking-widest uppercase">Loading Gallery...</div>
+        <div className="animate-pulse text-xs tracking-widest uppercase font-serif">Loading Portfolio...</div>
       </div>
     );
   }
@@ -110,11 +108,12 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-white text-stone-900 font-sans flex flex-col">
       {isDemoMode && (
-         <div className="bg-red-50 text-red-600 text-[10px] md:text-xs text-center py-2 px-4 uppercase tracking-widest font-bold border-b border-red-100">
-            Demo Mode — Keine Bilder gefunden. Bitte lade Bilder in den 'images' Ordner auf GitHub.
+         <div className="bg-stone-100 text-stone-500 text-[10px] text-center py-2 px-4 uppercase tracking-widest font-bold">
+            Demo Mode — Upload images to 'images/' folder on GitHub to activate.
          </div>
       )}
       
+      {/* Reverted to Top Header */}
       <Header 
         activeTab={activeTab}
         setActiveTab={setActiveTab}

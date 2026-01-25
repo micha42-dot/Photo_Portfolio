@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
           className="cursor-pointer z-50 flex items-center h-full" 
           onClick={() => handleNav('gallery')}
         >
-          <h1 className="text-base md:text-lg font-extrabold tracking-widest uppercase heading-font text-stone-900 leading-none">
+          <h1 className="text-base md:text-lg font-bold tracking-widest uppercase heading-font text-stone-900 leading-none">
             Michael Förtsch
           </h1>
         </div>
@@ -53,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
         <nav className="hidden md:flex items-center gap-6 lg:gap-8 h-full">
           <button 
             onClick={() => handleNav('gallery')}
-            className={`text-[10px] font-bold tracking-widest uppercase hover:text-stone-500 transition-colors h-full flex items-center ${activeTab === 'gallery' && activeCategory === 'All' ? 'text-stone-900' : 'text-stone-400'}`}
+            className={`text-[10px] font-medium tracking-widest uppercase hover:text-stone-500 transition-colors h-full flex items-center ${activeTab === 'gallery' && activeCategory === 'All' ? 'text-stone-900' : 'text-stone-400'}`}
           >
             Start
           </button>
@@ -62,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
           {dropdownCategories.length > 0 && (
             <div className="relative group h-full flex items-center">
               <button 
-                className={`text-[10px] font-bold tracking-widest uppercase hover:text-stone-500 transition-colors h-full flex items-center ${activeTab === 'gallery' && activeCategory !== 'All' ? 'text-stone-900' : 'text-stone-400'}`}
+                className={`text-[10px] font-medium tracking-widest uppercase hover:text-stone-500 transition-colors h-full flex items-center ${activeTab === 'gallery' && activeCategory !== 'All' ? 'text-stone-900' : 'text-stone-400'}`}
               >
                 Portfolio
               </button>
@@ -84,14 +84,14 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button 
             onClick={() => handleNav('about')}
-            className={`text-[10px] font-bold tracking-widest uppercase hover:text-stone-500 transition-colors h-full flex items-center ${activeTab === 'about' ? 'text-stone-900' : 'text-stone-400'}`}
+            className={`text-[10px] font-medium tracking-widest uppercase hover:text-stone-500 transition-colors h-full flex items-center ${activeTab === 'about' ? 'text-stone-900' : 'text-stone-400'}`}
           >
             Über Mich
           </button>
           
           <button 
             onClick={() => handleNav('contact')}
-            className={`text-[10px] font-bold tracking-widest uppercase hover:text-stone-500 transition-colors h-full flex items-center ${activeTab === 'contact' ? 'text-stone-900' : 'text-stone-400'}`}
+            className={`text-[10px] font-medium tracking-widest uppercase hover:text-stone-500 transition-colors h-full flex items-center ${activeTab === 'contact' ? 'text-stone-900' : 'text-stone-400'}`}
           >
             Kontakt
           </button>
@@ -113,7 +113,7 @@ export const Header: React.FC<HeaderProps> = ({
           ${isMobileMenuOpen ? 'translate-y-0' : '-translate-y-full'}
         `}
       >
-        <button onClick={() => handleNav('gallery')} className="text-lg font-bold uppercase tracking-widest">Start</button>
+        <button onClick={() => handleNav('gallery')} className="text-lg font-medium uppercase tracking-widest">Start</button>
         <div className="flex flex-col items-center gap-3 py-4 border-y border-stone-100 w-full max-w-xs">
           {dropdownCategories.map(cat => (
             <button
@@ -125,8 +125,8 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           ))}
         </div>
-        <button onClick={() => handleNav('about')} className="text-lg font-bold uppercase tracking-widest">Über Mich</button>
-        <button onClick={() => handleNav('contact')} className="text-lg font-bold uppercase tracking-widest">Kontakt</button>
+        <button onClick={() => handleNav('about')} className="text-lg font-medium uppercase tracking-widest">Über Mich</button>
+        <button onClick={() => handleNav('contact')} className="text-lg font-medium uppercase tracking-widest">Kontakt</button>
       </div>
     </header>
   );

@@ -93,8 +93,8 @@ const App: React.FC = () => {
     }
   };
   
-  const currentLabel = activeCategory === 'All' ? 'Alle Arbeiten' : 
-                       activeCategory === 'Search Results' ? 'Suchergebnisse' :
+  const currentLabel = activeCategory === 'All' ? 'Overview' : 
+                       activeCategory === 'Search Results' ? 'Search Results' :
                        activeCategory;
 
   if (isLoading) {
@@ -108,12 +108,11 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-white text-stone-900 font-sans flex flex-col">
       {isDemoMode && (
-         <div className="bg-stone-100 text-stone-500 text-[10px] text-center py-2 px-4 uppercase tracking-widest font-bold">
+         <div className="bg-stone-50 text-stone-300 text-[9px] text-center py-1 uppercase tracking-widest">
             Demo Mode — Upload images to 'images/' folder on GitHub to activate.
          </div>
       )}
       
-      {/* Reverted to Top Header */}
       <Header 
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -127,7 +126,7 @@ const App: React.FC = () => {
             <Gallery 
               photos={displayPhotos} 
               onPhotoClick={setSelectedPhoto} 
-              title={activeCategory === 'All' ? 'Overview' : currentLabel}
+              title={currentLabel}
               isSearching={activeCategory === 'Search Results'}
             />
           )}

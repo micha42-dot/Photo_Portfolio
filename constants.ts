@@ -1,12 +1,12 @@
 import { Photo, Project } from './types';
 
 export const PROJECTS: Project[] = [
-  { id: 'All', label: 'Alle Arbeiten' },
+  { id: 'All', label: 'Overview' },
   { id: 'Portraits', label: 'Portraits' },
-  { id: 'Landschaft', label: 'Landschaft & Natur' },
-  { id: 'Stadt', label: 'Stadt & Architektur' },
-  { id: 'Cinematic', label: 'Cinematic Photography' },
-  { id: 'Automotiv', label: 'Automotiv' },
+  { id: 'Landscape', label: 'Landscape & Nature' },
+  { id: 'Architecture', label: 'City & Architecture' },
+  { id: 'Cinematic', label: 'Cinematic' },
+  { id: 'Automotive', label: 'Automotive' },
 ];
 
 export const INITIAL_PHOTOS: Photo[] = [
@@ -17,8 +17,8 @@ export const INITIAL_PHOTOS: Photo[] = [
     height: 1200,
     title: 'Neon Portrait',
     client: 'Portraits',
-    description: 'Studie im künstlichen Licht.',
-    keywords: ['portrait', 'frau', 'neon', 'licht', 'studio']
+    description: 'Study in artificial light.',
+    keywords: ['portrait', 'woman', 'neon', 'light', 'studio']
   },
   {
     id: '2',
@@ -26,9 +26,9 @@ export const INITIAL_PHOTOS: Photo[] = [
     width: 1200,
     height: 800,
     title: 'Alpine Pass',
-    client: 'Landschaft',
-    description: 'Morgenstimmung in den Dolomiten.',
-    keywords: ['natur', 'berge', 'nebel', 'morgen', 'landschaft']
+    client: 'Landscape',
+    description: 'Morning mood in the Dolomites.',
+    keywords: ['nature', 'mountains', 'fog', 'morning', 'landscape']
   },
   {
     id: '3',
@@ -36,9 +36,9 @@ export const INITIAL_PHOTOS: Photo[] = [
     width: 800,
     height: 600,
     title: 'Concrete Jungle',
-    client: 'Stadt',
-    description: 'Modernistische Architektur in Berlin.',
-    keywords: ['stadt', 'berlin', 'architektur', 'beton', 'linien']
+    client: 'Architecture',
+    description: 'Modernist architecture in Berlin.',
+    keywords: ['city', 'berlin', 'architecture', 'concrete', 'lines']
   },
   {
     id: '4',
@@ -47,8 +47,8 @@ export const INITIAL_PHOTOS: Photo[] = [
     height: 1200,
     title: 'Metro Noir',
     client: 'Cinematic',
-    description: 'Filmische Szene in der U-Bahn.',
-    keywords: ['cinematic', 'ubahn', 'dunkel', 'stimmung', 'filmlook']
+    description: 'Cinematic scene in the subway.',
+    keywords: ['cinematic', 'subway', 'dark', 'mood', 'filmlook']
   },
   {
     id: '5',
@@ -56,9 +56,9 @@ export const INITIAL_PHOTOS: Photo[] = [
     width: 1200,
     height: 800,
     title: 'Vintage 911',
-    client: 'Automotiv',
-    description: 'Klassiker auf der Landstraße.',
-    keywords: ['auto', 'porsche', 'vintage', 'oldtimer', 'straße']
+    client: 'Automotive',
+    description: 'Classic on a country road.',
+    keywords: ['car', 'porsche', 'vintage', 'oldtimer', 'road']
   },
   {
     id: '6',
@@ -67,8 +67,8 @@ export const INITIAL_PHOTOS: Photo[] = [
     height: 1100,
     title: 'The Writer',
     client: 'Portraits',
-    description: 'Redaktionelles Portrait für ein Magazin.',
-    keywords: ['mann', 'portrait', 'editorial', 'schwarzweiss']
+    description: 'Editorial portrait for a magazine.',
+    keywords: ['man', 'portrait', 'editorial', 'bw']
   },
   {
     id: '7',
@@ -76,9 +76,9 @@ export const INITIAL_PHOTOS: Photo[] = [
     width: 1200,
     height: 800,
     title: 'Skyline Reflections',
-    client: 'Stadt',
-    description: 'Spiegelungen in der Glasfassade.',
-    keywords: ['architektur', 'glas', 'wolkenkratzer', 'stadt', 'blau']
+    client: 'Architecture',
+    description: 'Reflections in a glass facade.',
+    keywords: ['architecture', 'glass', 'skyscraper', 'city', 'blue']
   },
   {
     id: '8',
@@ -86,9 +86,9 @@ export const INITIAL_PHOTOS: Photo[] = [
     width: 1200,
     height: 800,
     title: 'Speed',
-    client: 'Automotiv',
-    description: 'Dynamische Aufnahme bei Nacht.',
-    keywords: ['auto', 'nacht', 'lichter', 'geschwindigkeit', 'automotiv']
+    client: 'Automotive',
+    description: 'Dynamic shot at night.',
+    keywords: ['car', 'night', 'lights', 'speed', 'automotive']
   },
   {
     id: '9',
@@ -97,8 +97,8 @@ export const INITIAL_PHOTOS: Photo[] = [
     height: 800,
     title: 'Lost Highway',
     client: 'Cinematic',
-    description: 'Einsame Straße im Zwielicht.',
-    keywords: ['straße', 'cinematic', 'dunkel', 'reise', 'film']
+    description: 'Lonely road in twilight.',
+    keywords: ['road', 'cinematic', 'dark', 'travel', 'film']
   },
   {
     id: '10',
@@ -106,9 +106,9 @@ export const INITIAL_PHOTOS: Photo[] = [
     width: 1000,
     height: 600,
     title: 'Forest Edge',
-    client: 'Landschaft',
-    description: 'Lichtspiel am Waldrand.',
-    keywords: ['wald', 'natur', 'bäume', 'grün', 'ruhe']
+    client: 'Landscape',
+    description: 'Light play at the forest edge.',
+    keywords: ['forest', 'nature', 'trees', 'green', 'calm']
   },
   {
     id: '11',
@@ -117,8 +117,8 @@ export const INITIAL_PHOTOS: Photo[] = [
     height: 800,
     title: 'City Rain',
     client: 'Cinematic',
-    description: 'Regnerischer Tag in der Großstadt.',
-    keywords: ['regen', 'stadt', 'cinematic', 'moody', 'fenster']
+    description: 'Rainy day in the big city.',
+    keywords: ['rain', 'city', 'cinematic', 'moody', 'window']
   },
   {
     id: '12',
@@ -126,9 +126,9 @@ export const INITIAL_PHOTOS: Photo[] = [
     width: 900,
     height: 900,
     title: 'Bauhaus Details',
-    client: 'Stadt',
-    description: 'Geometrische Formen und Schatten.',
-    keywords: ['architektur', 'weiss', 'schatten', 'minimalismus']
+    client: 'Architecture',
+    description: 'Geometric shapes and shadows.',
+    keywords: ['architecture', 'white', 'shadow', 'minimalism']
   },
   {
     id: '13',
@@ -137,8 +137,8 @@ export const INITIAL_PHOTOS: Photo[] = [
     height: 1000,
     title: 'Studio Light',
     client: 'Portraits',
-    description: 'High-Key Studioaufnahme.',
-    keywords: ['portrait', 'studio', 'hell', 'fashion']
+    description: 'High-key studio shot.',
+    keywords: ['portrait', 'studio', 'bright', 'fashion']
   },
   {
     id: '14',
@@ -146,8 +146,8 @@ export const INITIAL_PHOTOS: Photo[] = [
     width: 1200,
     height: 800,
     title: 'Dashboard',
-    client: 'Automotiv',
-    description: 'Detailaufnahme Interieur.',
-    keywords: ['auto', 'innenraum', 'leder', 'details', 'luxus']
+    client: 'Automotive',
+    description: 'Interior detail shot.',
+    keywords: ['car', 'interior', 'leather', 'details', 'luxury']
   }
 ];

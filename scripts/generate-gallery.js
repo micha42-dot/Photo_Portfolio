@@ -1,3 +1,7 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
 /**
  * HILFSSKRIPT ZUR GALERIE-ERSTELLUNG
  * 
@@ -8,8 +12,9 @@
  * node scripts/generate-gallery.js
  */
 
-const fs = require('fs');
-const path = require('path');
+// ESM workarounds for __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Konfiguration - Wir gehen davon aus, dass 'images' im Hauptverzeichnis liegt
 // __dirname ist 'scripts/', also gehen wir eins hoch '../' und dann in 'images'

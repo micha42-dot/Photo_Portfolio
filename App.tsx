@@ -18,6 +18,7 @@ const App: React.FC = () => {
   const [displayPhotos, setDisplayPhotos] = useState<Photo[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   // Dynamic categories based on loaded photos (Maintenance-free!)
   const categories = useMemo(() => {
@@ -34,7 +35,11 @@ const App: React.FC = () => {
         if (!response.ok) throw new Error('No manifest found');
         
         const manifest = await response.json();
-        if (!Array.isArray(manifest)) throw new Error('Manifest is not an array');
+        
+        // If manifest is empty array (fallback from deploy script) or invalid
+        if (!Array.isArray(manifest) || manifest.length === 0) {
+            throw new Error('Manifest is empty');
+        }
         
         const loadedPhotos: Photo[] = manifest
           .filter((item: any) => item && item.filename)
@@ -50,11 +55,12 @@ const App: React.FC = () => {
             };
           });
 
-        if (loadedPhotos.length === 0) throw new Error('No photos found');
         setAllPhotos(loadedPhotos);
+        setIsDemoMode(false);
       } catch (error) {
         console.warn('Could not load gallery.json, falling back to demo data.', error);
         setAllPhotos(INITIAL_PHOTOS);
+        setIsDemoMode(true);
       } finally {
         setIsLoading(false);
       }
@@ -103,15 +109,21 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white text-stone-900 font-sans flex flex-col">
+      {isDemoMode && (
+         <div className="bg-red-50 text-red-600 text-[10px] md:text-xs text-center py-2 px-4 uppercase tracking-widest font-bold border-b border-red-100">
+            Demo Mode — Keine Bilder gefunden. Bitte lade Bilder in den 'images' Ordner auf GitHub.
+         </div>
+      )}
+      
       <Header 
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         activeCategory={activeCategory}
         setActiveCategory={setActiveCategory}
-        categories={categories} // Passing dynamic categories to Header
+        categories={categories} 
       />
 
-      <main className="flex-1 flex flex-col w-full max-w-[1800px] mx-auto px-4 md:px-8 lg:px-12 py-8 md:py-16">
+      <main className="flex-1 flex flex-col w-full max-w-[1800px] mx-auto px-4 md:px-8 lg:px-12 py-8 md:py-12">
           {activeTab === 'gallery' && (
             <Gallery 
               photos={displayPhotos} 

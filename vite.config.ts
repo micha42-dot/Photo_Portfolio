@@ -1,11 +1,10 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: './', // Ensures relative paths for GitHub Pages
-  build: {
-    outDir: 'dist',
-    emptyOutDir: true
-  }
-});
+  // WICHTIG: Wenn dein Repo "mein-portfolio" heißt, muss base auf '/mein-portfolio/' gesetzt werden.
+  // Wenn du eine Custom Domain nutzt (z.B. www.michael-foertsch.de), setze base auf '/'
+  base: './', 
+})

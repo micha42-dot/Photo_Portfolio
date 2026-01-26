@@ -1,133 +1,110 @@
 import React, { useState } from 'react';
-import { TabType } from '../types';
-import { Menu, X } from 'lucide-react';
+import { Category } from '../types';
+import { NAV_ITEMS } from '../constants';
 
 interface HeaderProps {
-  activeTab: TabType;
-  setActiveTab: (tab: TabType) => void;
-  activeCategory: string;
-  setActiveCategory: (cat: string) => void;
-  categories?: string[]; 
+  activeCategory: Category;
+  onCategoryChange: (category: Category) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({
-  activeTab,
-  setActiveTab,
-  activeCategory,
-  setActiveCategory,
-  categories = [] 
-}) => {
+export const Header: React.FC<HeaderProps> = ({ activeCategory, onCategoryChange }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleNav = (tab: TabType) => {
-    setActiveTab(tab);
-    if (tab === 'gallery') {
-      setActiveCategory('All');
-    }
+  const handleMobileNavClick = (category: Category) => {
+    onCategoryChange(category);
     setIsMobileMenuOpen(false);
   };
-
-  const handleCategory = (catId: string) => {
-    setActiveCategory(catId);
-    setActiveTab('gallery');
-    setIsMobileMenuOpen(false);
-  };
-
-  // Filter out 'All' and 'Search Results' for the dropdown
-  const dropdownCategories = categories.filter(c => c !== 'All' && c !== 'Search Results');
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm w-full">
-      <div className="max-w-[1800px] mx-auto px-6 md:px-12 flex justify-between items-center h-20 md:h-24">
-        {/* Logo - Strictly Left Aligned */}
-        <div 
-          className="cursor-pointer z-50 flex items-center h-full" 
-          onClick={() => handleNav('gallery')}
-        >
-          <h1 className="text-lg md:text-xl font-bold tracking-[0.2em] uppercase heading-font text-stone-900 leading-none hover:opacity-60 transition-opacity">
-            Michael Förtsch
-          </h1>
-        </div>
-
-        {/* Desktop Nav - Strictly Right Aligned */}
-        <nav className="hidden md:flex items-center gap-8 lg:gap-12 h-full">
-          <button 
-            onClick={() => handleNav('gallery')}
-            className={`text-[11px] font-semibold tracking-[0.15em] uppercase hover:text-stone-500 transition-colors ${activeTab === 'gallery' && activeCategory === 'All' ? 'text-stone-900' : 'text-stone-400'}`}
-          >
-            Overview
-          </button>
+    <>
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm w-full border-b border-gray-100">
+        {/* Reduced padding (py-4 instead of py-6) for a smaller header */}
+        <div className="max-w-[1800px] mx-auto px-6 py-4 flex items-center justify-between">
           
-          {/* Categories Dropdown */}
-          {dropdownCategories.length > 0 && (
-            <div className="relative group h-full flex items-center">
-              <button 
-                className={`text-[11px] font-semibold tracking-[0.15em] uppercase hover:text-stone-500 transition-colors ${activeTab === 'gallery' && activeCategory !== 'All' ? 'text-stone-900' : 'text-stone-400'}`}
-              >
-                Portfolio
-              </button>
-              <div className="absolute top-full right-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out">
-                  <div className="bg-white border border-stone-100 shadow-sm p-4 flex flex-col gap-3 min-w-[180px] text-right">
-                    {dropdownCategories.map(cat => (
-                      <button
-                        key={cat}
-                        onClick={() => handleCategory(cat)}
-                        className="text-[10px] uppercase tracking-[0.15em] text-stone-400 hover:text-stone-900 whitespace-nowrap font-medium transition-colors"
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
-              </div>
-            </div>
-          )}
-
-          <button 
-            onClick={() => handleNav('about')}
-            className={`text-[11px] font-semibold tracking-[0.15em] uppercase hover:text-stone-500 transition-colors ${activeTab === 'about' ? 'text-stone-900' : 'text-stone-400'}`}
-          >
-            Info
-          </button>
-          
-          <button 
-            onClick={() => handleNav('contact')}
-            className={`text-[11px] font-semibold tracking-[0.15em] uppercase hover:text-stone-500 transition-colors ${activeTab === 'contact' ? 'text-stone-900' : 'text-stone-400'}`}
-          >
-            Contact
-          </button>
-        </nav>
-
-        {/* Mobile Menu Button */}
-        <button 
-          className="md:hidden z-50 p-1 text-stone-900 flex items-center hover:opacity-50 transition-opacity"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          {isMobileMenuOpen ? <X size={24} strokeWidth={1.5} /> : <Menu size={24} strokeWidth={1.5} />}
-        </button>
-      </div>
-
-      {/* Mobile Menu Overlay - Full Screen White */}
-      <div 
-        className={`
-          fixed inset-0 bg-white z-40 flex flex-col items-center justify-center gap-8 transition-all duration-500 md:hidden
-          ${isMobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}
-        `}
-      >
-        <button onClick={() => handleNav('gallery')} className="text-xl font-light uppercase tracking-[0.2em]">Overview</button>
-        <div className="flex flex-col items-center gap-4 py-6 border-y border-stone-100 w-full max-w-[200px]">
-          {dropdownCategories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => handleCategory(cat)}
-              className="text-xs uppercase tracking-[0.15em] text-stone-500 hover:text-stone-900 font-medium"
+          {/* Brand Name - Bold, smaller text size */}
+          <div className="flex-shrink-0 z-50">
+            <h1 
+              className="text-lg md:text-xl font-bold tracking-[0.2em] uppercase text-black cursor-pointer hover:opacity-70 transition-opacity" 
+              onClick={() => {
+                onCategoryChange(Category.ALL);
+                setIsMobileMenuOpen(false);
+              }}
             >
-              {cat}
+              Michael Förtsch
+            </h1>
+          </div>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:block">
+            <ul className="flex items-center gap-8">
+              {NAV_ITEMS.map((item) => (
+                <li key={item.value}>
+                  <button
+                    onClick={() => onCategoryChange(item.value)}
+                    className={`text-xs font-medium tracking-[0.15em] uppercase transition-all duration-300 ${
+                      activeCategory === item.value 
+                        ? 'text-black' 
+                        : 'text-gray-400 hover:text-black'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                </li>
+              ))}
+              <li>
+                  <button className="text-xs font-medium tracking-[0.15em] uppercase text-gray-400 hover:text-black transition-colors ml-4">
+                      Info
+                  </button>
+              </li>
+            </ul>
+          </nav>
+
+          {/* Mobile Menu Button (Hamburger) */}
+          <button 
+            className="md:hidden z-50 p-2 -mr-2 text-black focus:outline-none"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Toggle Menu"
+          >
+            <div className="w-5 flex flex-col items-end gap-[5px]">
+              <span className={`h-[2px] bg-black w-full transition-all duration-300 ${isMobileMenuOpen ? 'rotate-45 translate-y-[7px]' : ''}`} />
+              <span className={`h-[2px] bg-black w-full transition-all duration-300 ${isMobileMenuOpen ? 'opacity-0' : ''}`} />
+              <span className={`h-[2px] bg-black w-full transition-all duration-300 ${isMobileMenuOpen ? '-rotate-45 -translate-y-[7px]' : ''}`} />
+            </div>
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile Menu Overlay */}
+      <div 
+        className={`fixed inset-0 bg-white z-40 flex flex-col justify-center items-center transition-all duration-500 md:hidden ${
+          isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        <nav className="flex flex-col gap-8 text-center">
+          {NAV_ITEMS.map((item, idx) => (
+            <button
+              key={item.value}
+              onClick={() => handleMobileNavClick(item.value)}
+              className={`text-2xl font-light tracking-widest uppercase transition-transform duration-500 ${
+                isMobileMenuOpen ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
+              }`}
+              style={{ transitionDelay: `${idx * 50}ms` }}
+            >
+              <span className={`${activeCategory === item.value ? 'border-b border-black pb-1' : ''}`}>
+                {item.label}
+              </span>
             </button>
           ))}
-        </div>
-        <button onClick={() => handleNav('about')} className="text-xl font-light uppercase tracking-[0.2em]">Info</button>
-        <button onClick={() => handleNav('contact')} className="text-xl font-light uppercase tracking-[0.2em]">Contact</button>
+          <button 
+             className={`text-2xl font-light tracking-widest uppercase text-gray-400 mt-8 transition-transform duration-500 ${
+                isMobileMenuOpen ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
+             }`}
+             style={{ transitionDelay: `${NAV_ITEMS.length * 50}ms` }}
+          >
+            Info & Contact
+          </button>
+        </nav>
       </div>
-    </header>
+    </>
   );
 };

@@ -1,121 +1,108 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { Photo } from '../types';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface LightboxProps {
-  photo: Photo;
-  photos: Photo[]; // Receive the filtered list of photos
+  photo: Photo | null;
+  isOpen: boolean;
   onClose: () => void;
+  onNext: () => void;
+  onPrev: () => void;
+  hasNext: boolean;
+  hasPrev: boolean;
 }
 
-export const Lightbox: React.FC<LightboxProps> = ({ photo: initialPhoto, photos = [], onClose }) => {
-  const [currentPhoto, setCurrentPhoto] = useState<Photo | undefined>(initialPhoto);
+export const Lightbox: React.FC<LightboxProps> = ({ 
+  photo, 
+  isOpen, 
+  onClose, 
+  onNext, 
+  onPrev,
+  hasNext,
+  hasPrev
+}) => {
+  
+  // Handle keyboard navigation
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (!isOpen) return;
+    
+    switch (e.key) {
+      case 'Escape':
+        onClose();
+        break;
+      case 'ArrowRight':
+        if (hasNext) onNext();
+        break;
+      case 'ArrowLeft':
+        if (hasPrev) onPrev();
+        break;
+    }
+  }, [isOpen, hasNext, hasPrev, onClose, onNext, onPrev]);
 
   useEffect(() => {
-    setCurrentPhoto(initialPhoto);
-  }, [initialPhoto]);
-
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+    // Lock body scroll
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
     return () => {
+      window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'unset';
     };
-  }, []);
+  }, [handleKeyDown, isOpen]);
 
-  const handleThumbnailClick = (p: Photo) => {
-    setCurrentPhoto(p);
-  };
-
-  // Safety guard: if currentPhoto is lost, return null
-  if (!currentPhoto) return null;
-
-  // Calculate index based on the PASSED photos array
-  const currentIndex = photos.findIndex(p => p.id === currentPhoto.id);
-  
-  const handlePrev = () => {
-     if (photos.length === 0) return;
-     const safeIndex = currentIndex === -1 ? 0 : currentIndex;
-     const nextIndex = safeIndex > 0 ? safeIndex - 1 : photos.length - 1;
-     
-     if (photos[nextIndex]) {
-        setCurrentPhoto(photos[nextIndex]);
-     }
-  };
-  
-  const handleNext = () => {
-     if (photos.length === 0) return;
-     const safeIndex = currentIndex === -1 ? 0 : currentIndex;
-     const nextIndex = safeIndex < photos.length - 1 ? safeIndex + 1 : 0;
-     
-     if (photos[nextIndex]) {
-        setCurrentPhoto(photos[nextIndex]);
-     }
-  };
+  if (!isOpen || !photo) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col animate-fade-in">
-      {/* Header */}
-      <div className="flex justify-between items-center p-6 md:p-8 absolute top-0 left-0 right-0 z-10">
-        <h2 
-            onClick={onClose}
-            className="text-xl md:text-2xl font-extrabold tracking-widest uppercase heading-font text-stone-900 cursor-pointer hover:opacity-70 transition-opacity"
-        >
-            Michael Förtsch
-        </h2>
-        <button 
-          onClick={onClose}
-          className="text-stone-900 hover:opacity-50 transition-opacity"
-        >
-          <X size={24} />
-        </button>
-      </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm transition-opacity duration-300">
+      
+      {/* Close Button */}
+      <button 
+        onClick={onClose}
+        className="absolute top-6 right-6 text-white/70 hover:text-white z-50 p-2"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
 
-      {/* Main Image Area */}
-      <div className="flex-1 relative flex items-center justify-center p-4 md:p-12 overflow-hidden bg-white">
-        
-        {/* Nav Buttons - Only show if we have multiple photos */}
-        {photos.length > 1 && (
-            <>
-                <button onClick={handlePrev} className="absolute left-4 md:left-8 p-2 text-stone-400 hover:text-stone-900 transition-colors z-20">
-                    <ChevronLeft size={32} />
-                </button>
-                <button onClick={handleNext} className="absolute right-4 md:right-8 p-2 text-stone-400 hover:text-stone-900 transition-colors z-20">
-                    <ChevronRight size={32} />
-                </button>
-            </>
-        )}
-
+      {/* Main Image Container */}
+      <div className="relative w-full h-full flex items-center justify-center p-4 md:p-12">
         <img 
-          src={currentPhoto.src} 
-          alt={currentPhoto.title} 
-          className="max-w-full max-h-[70vh] object-contain shadow-sm"
+          src={photo.src} 
+          alt={photo.title || 'Portfolio Image'} 
+          className="max-h-full max-w-full object-contain shadow-2xl"
         />
         
         {/* Caption */}
-        <div className="absolute bottom-24 md:bottom-28 left-0 right-0 text-center pointer-events-none">
-            <p className="text-xs font-bold uppercase tracking-widest text-stone-900 bg-white/80 backdrop-blur inline-block px-3 py-1">
-                {currentPhoto.title} — {currentPhoto.client}
-            </p>
-        </div>
+        {photo.title && (
+            <div className="absolute bottom-6 left-0 right-0 text-center pointer-events-none">
+                <p className="text-white/80 text-sm tracking-widest uppercase font-light">{photo.title}</p>
+            </div>
+        )}
       </div>
 
-      {/* Filmstrip Footer */}
-      <div className="h-20 md:h-24 border-t border-stone-100 bg-white flex items-center justify-center px-4 overflow-x-auto no-scrollbar z-20">
-        <div className="flex gap-2 h-full py-4 items-center min-w-min">
-            {photos.map((p) => (
-                <div 
-                    key={p.id}
-                    onClick={() => handleThumbnailClick(p)}
-                    className={`
-                        h-full aspect-square cursor-pointer overflow-hidden transition-all duration-300
-                        ${currentPhoto.id === p.id ? 'opacity-100 ring-2 ring-stone-900' : 'opacity-40 hover:opacity-100'}
-                    `}
-                >
-                    <img src={p.src} className="w-full h-full object-cover" alt="" />
-                </div>
-            ))}
-        </div>
-      </div>
+      {/* Navigation Buttons */}
+      <button 
+        onClick={(e) => { e.stopPropagation(); onPrev(); }}
+        className={`absolute left-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white transition-colors ${!hasPrev ? 'opacity-20 cursor-not-allowed' : 'cursor-pointer'}`}
+        disabled={!hasPrev}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={0.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+
+      <button 
+        onClick={(e) => { e.stopPropagation(); onNext(); }}
+        className={`absolute right-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white transition-colors ${!hasNext ? 'opacity-20 cursor-not-allowed' : 'cursor-pointer'}`}
+        disabled={!hasNext}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={0.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
     </div>
   );
 };

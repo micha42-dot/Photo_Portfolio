@@ -1,44 +1,44 @@
 import React from 'react';
-import { TabType } from '../types';
-import { Instagram, Linkedin, ArrowRight } from 'lucide-react';
 
-interface FooterProps {
-  onNav: (tab: TabType) => void;
-}
-
-export const Footer: React.FC<FooterProps> = ({ onNav }) => {
+export const Footer: React.FC = () => {
   return (
-    <footer className="w-full bg-white py-20 mt-auto border-t border-stone-50">
-      <div className="max-w-[1800px] mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-end md:items-center gap-12">
+    <footer className="w-full bg-gray-50 py-16 mt-20 border-t border-gray-100">
+      <div className="max-w-2xl mx-auto px-6 text-center">
+        <h2 className="text-xl md:text-2xl font-bold tracking-wide mb-4 brand-font">SUBSCRIBE</h2>
+        <p className="text-gray-500 text-sm mb-8 font-light">
+          Receive updates about upcoming limited prints and books.
+        </p>
         
-        {/* Left: Credits */}
-        <div className="text-left space-y-4">
-           <h3 className="text-sm font-bold tracking-widest uppercase heading-font text-stone-900">Michael Förtsch</h3>
-           <p className="text-[10px] text-stone-400 uppercase tracking-widest">
-             Photography & Direction<br/>
-             Based in Berlin, Germany
-           </p>
-        </div>
+        <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto mb-12" onSubmit={(e) => e.preventDefault()}>
+          <input 
+            type="email" 
+            placeholder="Email Address" 
+            className="flex-1 bg-white border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black transition-colors"
+          />
+          <button 
+            type="submit" 
+            className="bg-black text-white px-8 py-3 text-xs font-bold tracking-widest hover:bg-gray-800 transition-colors uppercase"
+          >
+            Sign Up
+          </button>
+        </form>
 
-        {/* Right: Socials & External */}
-        <div className="flex flex-col items-end gap-6">
-           <a 
-              href="https://michaelfoertsch.de" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="group flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase text-stone-900 hover:text-stone-500 transition-colors"
-            >
-              michaelfoertsch.de
-              <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
+        <div className="flex justify-center gap-6 mb-8">
+            {/* Social Icons (SVGs) */}
+            <a href="#" className="w-8 h-8 flex items-center justify-center rounded-full bg-black text-white hover:bg-gray-700 transition">
+                 <span className="text-xs font-bold">IG</span>
             </a>
-
-           <div className="flex gap-6 items-center">
-             <a href="#" className="text-stone-400 hover:text-stone-900 transition-colors"><Instagram size={18} strokeWidth={1.5} /></a>
-             <a href="#" className="text-stone-400 hover:text-stone-900 transition-colors"><Linkedin size={18} strokeWidth={1.5} /></a>
-             <span className="h-4 w-px bg-stone-200"></span>
-             <button onClick={() => { onNav('impressum'); window.scrollTo(0,0); }} className="text-[10px] uppercase tracking-widest text-stone-400 hover:text-stone-900">Impressum</button>
-           </div>
+            <a href="#" className="w-8 h-8 flex items-center justify-center rounded-full bg-black text-white hover:bg-gray-700 transition">
+                 <span className="text-xs font-bold">TW</span>
+            </a>
+            <a href="#" className="w-8 h-8 flex items-center justify-center rounded-full bg-black text-white hover:bg-gray-700 transition">
+                 <span className="text-xs font-bold">BĒ</span>
+            </a>
         </div>
+        
+        <p className="text-gray-400 text-xs tracking-wider">
+          © {new Date().getFullYear()} MICHAEL FÖRTSCH. ALL RIGHTS RESERVED.
+        </p>
       </div>
     </footer>
   );

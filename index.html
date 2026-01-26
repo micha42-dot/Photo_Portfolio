@@ -1,22 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Michael Förtsch Portfolio</title>
+    <title>Michael Förtsch | Photography</title>
+    <!-- We keep Tailwind CDN for simplicity in this setup, 
+         but for a pro production setup consider installing tailwindcss via npm -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600&family=Outfit:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap');
-      
       body {
-        font-family: 'Inter', sans-serif;
-        background-color: #ffffff;
-      }
-      h1, h2, h3, .heading-font {
         font-family: 'Manrope', sans-serif;
+        background-color: #ffffff;
+        color: #1a1a1a;
       }
-      
-      /* Hide scrollbar for clean aesthetic */
+      h1, h2, h3, .brand-font {
+        font-family: 'Outfit', sans-serif;
+      }
+      /* Hide scrollbar for clean horizontal scrolling areas */
       .no-scrollbar::-webkit-scrollbar {
         display: none;
       }
@@ -28,23 +31,19 @@
   <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "fs": "https://esm.sh/fs@^0.0.1-security",
-    "path": "https://esm.sh/path@^0.12.7",
-    "url": "https://esm.sh/url@^0.11.4",
+    "react": "https://esm.sh/react@^19.2.4",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
     "vite": "https://esm.sh/vite@^7.3.1",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
   }
 }
 </script>
 <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-white text-stone-900 antialiased selection:bg-stone-200">
+  <body>
     <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
-  <script type="module" src="/index.tsx"></script>
-</body>
+    <!-- Vite Entry Point -->
+    <script type="module" src="/index.tsx"></script>
+  </body>
 </html>

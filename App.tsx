@@ -1,151 +1,89 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
+import { Category, Photo } from './types';
+import { PORTFOLIO_IMAGES } from './constants';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { Gallery } from './components/Gallery';
-import { About } from './components/About';
-import { Contact } from './components/Contact';
-import { Impressum } from './components/Impressum';
 import { Lightbox } from './components/Lightbox';
-import { Photo, TabType, GalleryManifestItem } from './types';
-import { INITIAL_PHOTOS } from './constants';
-import { searchPhotos } from './services/geminiService';
 
-const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabType>('gallery');
-  const [activeCategory, setActiveCategory] = useState<string>('All');
-  
-  const [allPhotos, setAllPhotos] = useState<Photo[]>([]); 
-  const [displayPhotos, setDisplayPhotos] = useState<Photo[]>([]);
-  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDemoMode, setIsDemoMode] = useState(false);
+function App() {
+  const [activeCategory, setActiveCategory] = useState<Category>(Category.ALL);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [currentPhotoId, setCurrentPhotoId] = useState<string | null>(null);
 
-  // Dynamic categories based on loaded photos
-  const categories = useMemo(() => {
-    if (!allPhotos || allPhotos.length === 0) return ['All'];
-    const cats = new Set(allPhotos.map(p => p.client).filter(Boolean));
-    return ['All', ...Array.from(cats)].sort();
-  }, [allPhotos]);
+  // Filter logic:
+  // 1. If Category is ALL, show everything.
+  // 2. Otherwise, only show photos matching the category.
+  const filteredPhotos = useMemo(() => {
+    if (activeCategory === Category.ALL) {
+      return PORTFOLIO_IMAGES;
+    }
+    return PORTFOLIO_IMAGES.filter(p => p.category === activeCategory);
+  }, [activeCategory]);
 
-  useEffect(() => {
-    const loadGallery = async () => {
-      try {
-        const response = await fetch('./gallery.json'); 
-        if (!response.ok) throw new Error('No manifest found');
-        
-        const manifest = await response.json();
-        
-        if (!Array.isArray(manifest) || manifest.length === 0) {
-            throw new Error('Manifest is empty');
-        }
-        
-        const loadedPhotos: Photo[] = manifest
-          .filter((item: any) => item && item.filename)
-          .map((item: GalleryManifestItem, index: number) => {
-            const category = item.category || 'Uncategorized';
-            return {
-              id: `img-${index}`,
-              src: item.filename, 
-              title: item.filename.split('/').pop()?.split('.')[0] || 'Untitled', 
-              client: category, 
-              description: '',
-              keywords: [category.toLowerCase()]
-            };
-          });
+  // Derived state for lightbox navigation
+  const currentPhotoIndex = useMemo(() => {
+    return filteredPhotos.findIndex(p => p.id === currentPhotoId);
+  }, [filteredPhotos, currentPhotoId]);
 
-        setAllPhotos(loadedPhotos);
-        setIsDemoMode(false);
-      } catch (error) {
-        console.warn('Could not load gallery.json, falling back to demo data.', error);
-        setAllPhotos(INITIAL_PHOTOS);
-        setIsDemoMode(true);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const currentPhoto = currentPhotoIndex >= 0 ? filteredPhotos[currentPhotoIndex] : null;
 
-    loadGallery();
-  }, []);
+  const handlePhotoClick = (photo: Photo) => {
+    setCurrentPhotoId(photo.id);
+    setLightboxOpen(true);
+  };
 
-  useEffect(() => {
-    if (activeCategory === 'All') {
-      setDisplayPhotos(allPhotos);
-    } else if (activeCategory === 'Search Results') {
-        // Handled by handleSearch
+  const handleNext = () => {
+    if (currentPhotoIndex < filteredPhotos.length - 1) {
+      setCurrentPhotoId(filteredPhotos[currentPhotoIndex + 1].id);
     } else {
-      setDisplayPhotos(allPhotos.filter(p => p.client === activeCategory));
-    }
-  }, [activeCategory, allPhotos]);
-
-  const handleSearch = async (query: string) => {
-    if (!query.trim()) {
-      setActiveCategory('All'); 
-      return;
-    }
-
-    try {
-      const matchedIds = await searchPhotos(query, allPhotos);
-      const filtered = allPhotos.filter(p => matchedIds.includes(p.id));
-      setDisplayPhotos(filtered);
-      setActiveCategory('Search Results');
-    } catch (error) {
-      console.error("Search failed", error);
+        // Optional: Loop back to start
+        setCurrentPhotoId(filteredPhotos[0].id); 
     }
   };
-  
-  const currentLabel = activeCategory === 'All' ? 'Overview' : 
-                       activeCategory === 'Search Results' ? 'Search Results' :
-                       activeCategory;
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white text-stone-900">
-        <div className="animate-pulse text-xs tracking-widest uppercase font-serif">Loading Portfolio...</div>
-      </div>
-    );
-  }
+  const handlePrev = () => {
+    if (currentPhotoIndex > 0) {
+      setCurrentPhotoId(filteredPhotos[currentPhotoIndex - 1].id);
+    } else {
+        // Optional: Loop to end
+        setCurrentPhotoId(filteredPhotos[filteredPhotos.length - 1].id);
+    }
+  };
+
+  // Reset scroll on category change
+  const handleCategoryChange = (cat: Category) => {
+    setActiveCategory(cat);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
-    <div className="min-h-screen bg-white text-stone-900 font-sans flex flex-col">
-      {isDemoMode && (
-         <div className="bg-stone-50 text-stone-300 text-[9px] text-center py-1 uppercase tracking-widest">
-            Demo Mode — Upload images to 'images/' folder on GitHub to activate.
-         </div>
-      )}
-      
+    <div className="min-h-screen flex flex-col bg-white text-gray-900 font-sans selection:bg-black selection:text-white">
       <Header 
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        activeCategory={activeCategory}
-        setActiveCategory={setActiveCategory}
-        categories={categories} 
+        activeCategory={activeCategory} 
+        onCategoryChange={handleCategoryChange} 
       />
 
-      <main className="flex-1 flex flex-col w-full max-w-[1800px] mx-auto px-4 md:px-8 lg:px-12 py-8 md:py-12">
-          {activeTab === 'gallery' && (
-            <Gallery 
-              photos={displayPhotos} 
-              onPhotoClick={setSelectedPhoto} 
-              title={currentLabel}
-              isSearching={activeCategory === 'Search Results'}
-            />
-          )}
-          {activeTab === 'about' && <About />}
-          {activeTab === 'contact' && <Contact />}
-          {activeTab === 'impressum' && <Impressum />}
+      <main className="flex-grow">
+        <Gallery 
+          photos={filteredPhotos} 
+          onPhotoClick={handlePhotoClick} 
+        />
       </main>
 
-      <Footer onNav={setActiveTab} />
+      <Footer />
 
-      {selectedPhoto && (
-        <Lightbox 
-            photo={selectedPhoto} 
-            photos={displayPhotos} 
-            onClose={() => setSelectedPhoto(null)} 
-        />
-      )}
+      <Lightbox 
+        isOpen={lightboxOpen}
+        photo={currentPhoto}
+        onClose={() => setLightboxOpen(false)}
+        onNext={handleNext}
+        onPrev={handlePrev}
+        hasNext={true} // Always allowing loop or simple check
+        hasPrev={true}
+      />
     </div>
   );
-};
+}
 
 export default App;

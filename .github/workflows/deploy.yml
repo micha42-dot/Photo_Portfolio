@@ -1,15 +1,19 @@
 name: Deploy to GitHub Pages
 
 on:
+  # Trigger the workflow every time you push to the main branch
   push:
-    branches: ["main", "master"]
+    branches: ["main"]
+  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 concurrency:
   group: "pages"
   cancel-in-progress: false
@@ -25,24 +29,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: 'npm'
 
-      - name: Generate Gallery JSON (Fail-safe)
-        run: |
-          if [ -f "scripts/generate-gallery.js" ]; then
-            node scripts/generate-gallery.js
-          else
-            echo "ACHTUNG: scripts/generate-gallery.js wurde nicht gefunden."
-            echo "Erstelle leere gallery.json damit der Build nicht fehlschlägt."
-            echo "[]" > gallery.json
-          fi
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
+      - name: Build
+        run: npm run build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: ./dist
 
   deploy:
     environment:
@@ -52,4 +50,5 @@ jobs:
     needs: build
     steps:
       - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4

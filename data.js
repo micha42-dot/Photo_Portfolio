@@ -11,18 +11,18 @@ window.portfolioData = [
         titel: "LANDSCHAFT & Natur",
         bilder: [
             // Beispiel: Ordner "images" -> Unterordner "landscape" -> Bild "01.jpg"
-            "images/Landschaft & Natur/Bild 01.jpg",
-            "images/Landschaft & Natur/Bild 02.jpg",
-            "images/Landschaft & Natur/Bild 03.jpg",
-            "images/Landschaft & Natur/Bild 04.jpg",
-            "images/Landschaft & Natur/Bild 05.jpg",
-            "images/Landschaft & Natur/Bild 06.jpg",
-            "images/Landschaft & Natur/Bild 07.jpg",
-            "images/Landschaft & Natur/Bild 08.jpg",
-            "images/Landschaft & Natur/Bild 09.jpg",
-            "images/Landschaft & Natur/Bild 10.jpg",
-            "images/Landschaft & Natur/Bild 11.jpg",
-            "images/Landschaft & Natur/Bild 12.jpg"        ]
+            "images/Landschaft & Natur/Bild (01).jpg",
+            "images/Landschaft & Natur/Bild (02).jpg",
+            "images/Landschaft & Natur/Bild (03).jpg",
+            "images/Landschaft & Natur/Bild (04).jpg",
+            "images/Landschaft & Natur/Bild (05).jpg",
+            "images/Landschaft & Natur/Bild (06).jpg",
+            "images/Landschaft & Natur/Bild (07).jpg",
+            "images/Landschaft & Natur/Bild (08).jpg",
+            "images/Landschaft & Natur/Bild (09).jpg",
+            "images/Landschaft & Natur/Bild (10).jpg",
+            "images/Landschaft & Natur/Bild (11).jpg",
+            "images/Landschaft & Natur/Bild (12).jpg"        ]
     },
     {
         titel: "URBAN",

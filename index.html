@@ -28,8 +28,6 @@
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .fade-in { animation: fadeIn 0.5s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 <script type="importmap">
 {
@@ -46,10 +44,10 @@
 <body class="bg-white text-gray-900 font-sans selection:bg-black selection:text-white flex flex-col min-h-screen">
 
     <!-- HEADER -->
-    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-sm w-full border-b border-gray-100 transition-all duration-300">
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-sm w-full border-b border-gray-100">
         <div class="max-w-[1800px] mx-auto px-6 py-4 flex items-center justify-between">
             <div class="flex-shrink-0 z-50">
-                <h1 onclick="filterImages('all')" class="text-lg md:text-xl font-bold tracking-[0.2em] uppercase text-black cursor-pointer hover:opacity-70 transition-opacity font-brand">
+                <h1 onclick="filterImages('all')" class="text-lg md:text-xl font-bold tracking-[0.2em] uppercase text-black cursor-pointer hover:opacity-70 font-brand">
                     Michael Förtsch
                 </h1>
             </div>
@@ -64,16 +62,16 @@
             <!-- Mobile Burger Button -->
             <button class="md:hidden z-50 p-2 -mr-2 text-black focus:outline-none" onclick="toggleMobileMenu()">
                 <div class="w-5 flex flex-col items-end gap-[5px]">
-                    <span id="burger-1" class="h-[2px] bg-black w-full transition-all duration-300"></span>
-                    <span id="burger-2" class="h-[2px] bg-black w-full transition-all duration-300"></span>
-                    <span id="burger-3" class="h-[2px] bg-black w-full transition-all duration-300"></span>
+                    <span id="burger-1" class="h-[2px] bg-black w-full"></span>
+                    <span id="burger-2" class="h-[2px] bg-black w-full"></span>
+                    <span id="burger-3" class="h-[2px] bg-black w-full"></span>
                 </div>
             </button>
         </div>
     </header>
 
     <!-- MOBILE MENU OVERLAY -->
-    <div id="mobile-menu" class="fixed inset-0 bg-white z-40 flex flex-col justify-center items-center opacity-0 pointer-events-none transition-all duration-500">
+    <div id="mobile-menu" class="fixed inset-0 bg-white z-40 flex flex-col justify-center items-center opacity-0 pointer-events-none">
         <nav class="flex flex-col gap-8 text-center" id="mobile-nav-items"></nav>
     </div>
 
@@ -97,7 +95,7 @@
             </p>
             
             <div>
-                <a href="https://michaelfoertsch.de" target="_blank" rel="noopener noreferrer" class="inline-block bg-black text-white px-8 py-3 text-xs font-bold tracking-widest hover:bg-gray-800 transition-colors uppercase font-brand">
+                <a href="https://michaelfoertsch.de" target="_blank" rel="noopener noreferrer" class="inline-block bg-black text-white px-8 py-3 text-xs font-bold tracking-widest hover:bg-gray-800 uppercase font-brand">
                     Zu michaelfoertsch.de
                 </a>
             </div>
@@ -109,7 +107,7 @@
         <div class="max-w-2xl mx-auto px-6 text-center">
             <div class="text-gray-400 text-xs tracking-wider font-brand flex flex-col items-center gap-2">
                 <p>© <span id="year"></span> MICHAEL FÖRTSCH. ALLE RECHTE VORBEHALTEN.</p>
-                <a href="https://michaelfoertsch.de/impressum.html" target="_blank" rel="noopener noreferrer" class="hover:text-black transition-colors underline decoration-1 underline-offset-2">
+                <a href="https://michaelfoertsch.de/impressum.html" target="_blank" rel="noopener noreferrer" class="hover:text-black underline decoration-1 underline-offset-2">
                     IMPRESSUM
                 </a>
             </div>
@@ -117,7 +115,7 @@
     </footer>
 
     <!-- INFO / ÜBER OVERLAY -->
-    <div id="info-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-300">
+    <div id="info-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-md opacity-0 pointer-events-none">
         <button onclick="closeInfo()" class="absolute top-6 right-6 text-black hover:opacity-50 z-50 p-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
@@ -132,18 +130,18 @@
     </div>
 
     <!-- LIGHTBOX -->
-    <div id="lightbox" onclick="closeLightbox()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 cursor-pointer">
+    <div id="lightbox" onclick="closeLightbox()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm opacity-0 pointer-events-none cursor-pointer">
         <button onclick="closeLightbox()" class="absolute top-6 right-6 text-white/70 hover:text-white z-50 p-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
         <div class="relative w-full h-full flex items-center justify-center p-4 md:p-12">
-            <img id="lightbox-img" src="" alt="Portfolio" onclick="event.stopPropagation()" class="max-h-full max-w-full object-contain shadow-2xl transition-transform duration-300 cursor-default">
+            <img id="lightbox-img" src="" alt="Portfolio" onclick="event.stopPropagation()" class="max-h-full max-w-full object-contain shadow-2xl cursor-default">
             <div class="absolute bottom-6 left-0 right-0 text-center pointer-events-none">
                 <p id="lightbox-caption" class="text-white/80 text-sm tracking-widest uppercase font-light font-brand"></p>
             </div>
         </div>
-        <button onclick="event.stopPropagation(); changeImage(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white transition-colors cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg></button>
-        <button onclick="event.stopPropagation(); changeImage(1)" class="absolute right-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white transition-colors cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg></button>
+        <button onclick="event.stopPropagation(); changeImage(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg></button>
+        <button onclick="event.stopPropagation(); changeImage(1)" class="absolute right-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg></button>
     </div>
 
     <!-- 1. HIER LADEN WIR DIE DATEN AUS DER EXTERNEN DATEI -->
@@ -173,7 +171,6 @@
             return str.toLowerCase().replace(/[^a-z0-9]/g, '');
         }
 
-        // Hilfsfunktion, um Fehler beim Bildladen schön anzuzeigen
         function handleImgError(img, src) {
             const container = img.parentElement;
             container.innerHTML = `
@@ -188,7 +185,6 @@
         }
 
         function initGallery() {
-            // Wir prüfen, ob data.js geladen wurde
             if (typeof window.portfolioData === 'undefined') {
                 console.error("data.js konnte nicht geladen werden.");
                 const grid = document.getElementById('gallery-grid');
@@ -230,19 +226,21 @@
                 const btn = document.createElement('button');
                 btn.textContent = cat.label;
                 btn.onclick = () => filterImages(cat.id);
-                btn.className = `text-xs font-medium tracking-[0.15em] uppercase transition-all duration-300 nav-btn-${cat.id}`;
+                // Keine Transition
+                btn.className = `text-xs font-medium tracking-[0.15em] uppercase nav-btn-${cat.id}`;
                 li.appendChild(btn);
                 deskNav.appendChild(li);
 
                 const mobBtn = document.createElement('button');
                 mobBtn.textContent = cat.label;
                 mobBtn.onclick = () => { filterImages(cat.id); toggleMobileMenu(); };
-                mobBtn.className = `text-2xl font-light tracking-widest uppercase transition-transform duration-500 mob-nav-btn-${cat.id}`;
+                // Keine Transition
+                mobBtn.className = `text-2xl font-light tracking-widest uppercase mob-nav-btn-${cat.id}`;
                 mobNav.appendChild(mobBtn);
             });
             
             const infoLi = document.createElement('li');
-            infoLi.innerHTML = `<button onclick="openInfo()" class="text-xs font-medium tracking-[0.15em] uppercase text-gray-500 hover:text-black transition-colors ml-4">INFO</button>`;
+            infoLi.innerHTML = `<button onclick="openInfo()" class="text-xs font-medium tracking-[0.15em] uppercase text-gray-500 hover:text-black ml-4">INFO</button>`;
             deskNav.appendChild(infoLi);
 
             const mobInfoBtn = document.createElement('button');
@@ -291,21 +289,21 @@
                 document.getElementById('no-results').classList.add('hidden');
                 currentFilteredImages.forEach((img, index) => {
                     const div = document.createElement('div');
-                    div.className = 'break-inside-avoid relative group cursor-pointer overflow-hidden mb-4 fade-in';
+                    // Keine Transition
+                    div.className = 'break-inside-avoid relative group cursor-pointer overflow-hidden mb-4';
                     div.onclick = () => openLightbox(index);
                     
-                    // Wir escapen single quotes für den onerror handler string
                     const safeSrc = img.src.replace(/'/g, "\\'");
                     
                     div.innerHTML = `
                         <img 
                             src="${img.src}" 
                             alt="${img.title}" 
-                            class="w-full h-auto object-cover transition-transform duration-700 ease-in-out group-hover:scale-105 filter brightness-95 hover:brightness-100" 
+                            class="w-full h-auto object-cover filter brightness-95 hover:brightness-100" 
                             loading="lazy" 
                             onerror="handleImgError(this, '${safeSrc}')"
                         >
-                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none"></div>
+                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 pointer-events-none"></div>
                     `;
                     grid.appendChild(div);
                 });

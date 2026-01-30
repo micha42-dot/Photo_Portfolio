@@ -11,9 +11,9 @@ window.portfolioData = [
         titel: "LANDSCHAFT",
         bilder: [
             // Beispiel: Ordner "images" -> Unterordner "landscape" -> Bild "01.jpg"
-            "images/Automotiv/Bild 01.jpg",
-            "images/Automotiv/Bild 02.jpg",
-            "images/Automotiv/Bild 03.jpg"
+            "images/landscape/01.jpg",
+            "images/landscape/02.jpg",
+            "images/landscape/03.jpg"
         ]
     },
     {

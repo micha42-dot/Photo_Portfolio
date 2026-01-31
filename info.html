@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Michael Förtsch | Fotografie</title>
+    <title>Michael Förtsch | Info</title>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,7 +41,7 @@
             pointer-events: none;
         }
         
-        /* Dropdown Styles - Active State: Visible (wird per JS Klasse gesteuert) */
+        /* Dropdown Styles - Active State: Visible */
         .dropdown-content.show {
             opacity: 1;
             visibility: visible;
@@ -57,16 +57,6 @@
             transform: rotate(180deg);
         }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.4",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "vite": "https://esm.sh/vite@^7.3.1",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
-  }
-}
-</script>
 </head>
 <body class="bg-white text-gray-900 font-sans selection:bg-black selection:text-white flex flex-col min-h-screen">
 
@@ -75,7 +65,7 @@
         <div class="max-w-[1800px] mx-auto px-6 py-5 flex items-center justify-between">
             <!-- LOGO -->
             <div class="flex-shrink-0 z-50">
-                <a href="#all" class="text-lg md:text-xl font-bold tracking-[0.2em] uppercase text-black hover:opacity-70 font-brand">
+                <a href="index.html" class="text-lg md:text-xl font-bold tracking-[0.2em] uppercase text-black hover:opacity-70 font-brand">
                     Michael Förtsch
                 </a>
             </div>
@@ -84,7 +74,7 @@
             <nav class="hidden md:block">
                 <ul class="flex items-center gap-8 text-xs font-medium tracking-[0.15em] uppercase text-gray-500">
                     
-                    <!-- FOTOGRAFIE DROPDOWN (Click Action) -->
+                    <!-- FOTOGRAFIE DROPDOWN -->
                     <li class="relative h-full py-2">
                         <button id="dropdown-btn" onclick="toggleDropdown(event)" class="flex items-center gap-1 hover:text-black focus:outline-none uppercase tracking-[0.15em]">
                             Fotografie
@@ -102,8 +92,7 @@
                     </li>
 
                     <li>
-                        <!-- LINK ZU INFO.HTML -->
-                        <a href="info.html" id="nav-info" class="hover:text-black transition-colors ml-4">
+                        <a href="info.html" class="text-black transition-colors ml-4">
                             Info & Kontakt
                         </a>
                     </li>
@@ -129,14 +118,32 @@
     </div>
 
     <!-- CONTENT AREA -->
-    <main class="flex-grow w-full max-w-[1800px] mx-auto px-4 py-8 min-h-[60vh]">
+    <main class="flex-grow w-full max-w-3xl mx-auto px-4 py-12 md:py-20">
         
-        <!-- VIEW: GALLERY -->
-        <div id="view-gallery" class="w-full">
-            <div id="gallery-grid" class="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4"></div>
-            <!-- Fallback -->
-            <div id="no-results" class="hidden flex justify-center items-center h-64 text-gray-400 font-light">
-                Keine Bilder in dieser Kategorie gefunden.
+        <div class="grid md:grid-cols-2 gap-12 items-start">
+            <!-- Text Content -->
+            <div class="space-y-6">
+                <h2 class="text-3xl font-bold font-brand tracking-widest uppercase mb-6">Michael Förtsch</h2>
+                <div class="prose prose-sm font-light text-gray-600 leading-relaxed">
+                    <p>
+                        Willkommen im Portfolio. Hier finden Sie eine Auswahl an fotografischen Arbeiten aus den Bereichen Landschaft, Urban und Portrait. 
+                        Die Bilder fangen Momente der Stille und der Bewegung im urbanen Raum und in der Natur ein.
+                    </p>
+                    <p>
+                        Neben der Fotografie arbeitet Michael Förtsch als Technologie- und Wissenschaftsjournalist.
+                    </p>
+                </div>
+                
+                <div class="pt-8 border-t border-gray-100">
+                    <h3 class="text-sm font-bold uppercase tracking-widest mb-4">Kontakt</h3>
+                    <a href="mailto:kontakt@michaelfoertsch.de" class="text-gray-900 hover:underline">kontakt@michaelfoertsch.de</a>
+                </div>
+            </div>
+
+            <!-- Optional Image / Placeholder -->
+            <div class="bg-gray-50 aspect-[3/4] flex items-center justify-center text-gray-300 text-sm tracking-widest uppercase border border-gray-100">
+                <!-- Hier könnte ein Porträtfoto hin -->
+                Porträtfoto
             </div>
         </div>
 
@@ -146,7 +153,6 @@
     <footer class="w-full bg-white py-12 border-t border-gray-100 mt-auto">
         <div class="max-w-2xl mx-auto px-6 text-center">
             
-            <!-- Journalismus Link (Hier im Footer) -->
             <div class="mb-8">
                 <a href="https://michaelfoertsch.de" target="_blank" rel="noopener noreferrer" class="text-sm font-bold tracking-[0.2em] uppercase text-black hover:opacity-60 transition-opacity">
                     Journalismus
@@ -162,109 +168,45 @@
         </div>
     </footer>
 
-    <!-- LIGHTBOX -->
-    <div id="lightbox" onclick="closeLightbox()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm opacity-0 pointer-events-none cursor-pointer transition-opacity duration-300">
-        <button onclick="closeLightbox()" class="absolute top-6 right-6 text-white/70 hover:text-white z-50 p-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-        </button>
-        <div class="relative w-full h-full flex items-center justify-center p-4 md:p-12">
-            <img id="lightbox-img" src="" alt="Portfolio" onclick="event.stopPropagation()" class="max-h-full max-w-full object-contain shadow-2xl cursor-default">
-            <div class="absolute bottom-6 left-0 right-0 text-center pointer-events-none">
-                <p id="lightbox-caption" class="text-white/80 text-sm tracking-widest uppercase font-light font-brand"></p>
-            </div>
-        </div>
-        <button onclick="event.stopPropagation(); changeImage(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg></button>
-        <button onclick="event.stopPropagation(); changeImage(1)" class="absolute right-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg></button>
-    </div>
-
-    <!-- DATA LOADER -->
+    <!-- DATA LOADER for Nav Items -->
     <script src="data.js"></script>
 
     <script>
-        // ==========================================
-        // APP LOGIC
-        // ==========================================
-        let allImages = []; 
-        let currentFilteredImages = [];
-        let lightboxIndex = 0;
         let isMobileMenuOpen = false;
         let categories = []; 
 
         document.getElementById('year').textContent = new Date().getFullYear();
 
-        // Utilities
-        function generateTitle(src) {
-            if (src.includes('?')) return ''; 
-            const filename = src.split('/').pop().split('.')[0];
-            let title = filename.replace(/[-_]/g, ' ');
-            return title.replace(/\w\S*/g, (w) => (w.replace(/^\w/, (c) => c.toUpperCase())));
-        }
-
         function getSafeId(str) {
             return str.toLowerCase().replace(/[^a-z0-9]/g, '');
         }
 
-        function handleImgError(img, src) {
-            const container = img.parentElement;
-            container.innerHTML = `
-                <div class="w-full h-48 bg-gray-50 border border-red-200 flex flex-col items-center justify-center text-center p-4">
-                    <p class="text-red-900 font-medium text-sm mb-1">Image Error</p>
-                    <p class="text-xs text-gray-400 font-mono">${src}</p>
-                </div>
-            `;
-            container.removeAttribute('onclick'); 
-            container.classList.remove('cursor-pointer');
-        }
-
-        // Initialization
         function initApp() {
             if (typeof window.portfolioData === 'undefined') {
-                console.error("data.js not loaded.");
                 return;
             }
-
             const data = window.portfolioData;
-            allImages = [];
             categories = [];
             
-            // "Alle" Kategorie explizit hinzufügen für die Liste
             categories.push({ label: 'Alle', id: 'all' });
 
             data.forEach(item => {
-                const catName = item.titel;
-                const catId = getSafeId(catName);
-                categories.push({ label: catName, id: catId });
-
-                item.bilder.forEach(src => {
-                    allImages.push({
-                        src: src,
-                        category: catId,
-                        title: generateTitle(src)
-                    });
-                });
+                categories.push({ label: item.titel, id: getSafeId(item.titel) });
             });
 
             renderNavigation();
             
-            // Event Listener für Hash-Änderungen (Routing)
-            window.addEventListener('hashchange', handleRouting);
-            
-            // Initial Router Call
-            handleRouting();
-            
-            // Global Click Listener für Dropdown Close
             document.addEventListener('click', handleClickOutside);
         }
         
         // DROPDOWN LOGIC
         function toggleDropdown(event) {
-            event.stopPropagation(); // Verhindert, dass das Event zum Document bubbled
+            event.stopPropagation();
             const menu = document.getElementById('dropdown-menu');
             const btn = document.getElementById('dropdown-btn');
             
             menu.classList.toggle('show');
             
-            // Rotate Arrow (optional Visual Feedback)
             if(menu.classList.contains('show')) {
                 btn.parentElement.classList.add('dropdown-active');
                 btn.classList.add('text-black');
@@ -285,7 +227,6 @@
         }
         
         function handleClickOutside(event) {
-            // Wenn der Klick nicht innerhalb des Dropdown Buttons oder Menüs war -> Schließen
             const menu = document.getElementById('dropdown-menu');
             const btn = document.getElementById('dropdown-btn');
             
@@ -303,40 +244,33 @@
             dropContainer.innerHTML = '';
             mobContainer.innerHTML = '';
 
-            // Desktop Dropdown
+            // Desktop Dropdown - Links zeigen auf index.html
             categories.forEach(cat => {
-                // Dropdown Item
                 const link = document.createElement('a');
-                link.href = `#${cat.id}`;
+                link.href = `index.html#${cat.id}`;
                 link.textContent = cat.label;
                 link.className = 'w-full text-left py-2 px-6 text-xs font-medium tracking-[0.15em] uppercase text-gray-500 hover:text-black hover:bg-gray-50 transition-colors nav-link block';
-                link.dataset.cat = cat.id;
-                // WICHTIG: Wenn man im Dropdown klickt, soll es sich schließen
                 link.onclick = () => closeDropdown(); 
                 dropContainer.appendChild(link);
             });
 
-            // Mobile Menu (Flat list is better UX for mobile)
-            // 1. Home
+            // Mobile Menu
             const mobHome = document.createElement('a');
-            mobHome.href = "#all";
+            mobHome.href = "index.html#all";
             mobHome.textContent = "HOME / ALLE";
-            mobHome.onclick = toggleMobileMenu;
-            mobHome.className = "text-xl font-light tracking-widest uppercase text-black";
+            mobHome.className = "text-xl font-light tracking-widest uppercase text-gray-600 hover:text-black";
             mobContainer.appendChild(mobHome);
 
-            // 2. Categories
             categories.forEach(cat => {
                 if(cat.id === 'all') return;
                 const link = document.createElement('a');
-                link.href = `#${cat.id}`;
+                link.href = `index.html#${cat.id}`;
                 link.textContent = cat.label;
-                link.onclick = toggleMobileMenu;
                 link.className = 'text-xl font-light tracking-widest uppercase text-gray-600 hover:text-black';
                 mobContainer.appendChild(link);
             });
 
-            // 3. Static Links
+            // Static Links
             const mobJournalism = document.createElement('a');
             mobJournalism.href = "https://michaelfoertsch.de";
             mobJournalism.target = "_blank";
@@ -347,112 +281,10 @@
             const mobInfo = document.createElement('a');
             mobInfo.href = "info.html";
             mobInfo.textContent = "INFO & KONTAKT";
-            mobInfo.className = "text-xl font-light tracking-widest uppercase text-gray-600 hover:text-black";
+            mobInfo.className = "text-xl font-light tracking-widest uppercase text-black font-normal";
             mobContainer.appendChild(mobInfo);
         }
 
-        // The "Router" for Gallery Filtering
-        function handleRouting() {
-            // Hash auslesen (z.B. "#urban" -> "urban")
-            let hash = window.location.hash.substring(1);
-            if (!hash) hash = 'all';
-
-            // Prüfen ob Hash eine gültige Kategorie ist
-            const isValidCat = categories.some(c => c.id === hash);
-            const categoryToLoad = isValidCat ? hash : 'all';
-            
-            renderGallery(categoryToLoad);
-        }
-
-        function renderGallery(categoryId) {
-            currentFilteredImages = (categoryId === 'all') 
-                ? allImages 
-                : allImages.filter(img => img.category === categoryId);
-            
-            const grid = document.getElementById('gallery-grid');
-            const noResults = document.getElementById('no-results');
-            
-            grid.innerHTML = '';
-            
-            if (currentFilteredImages.length === 0) {
-                noResults.classList.remove('hidden');
-            } else {
-                noResults.classList.add('hidden');
-                currentFilteredImages.forEach((img, index) => {
-                    const div = document.createElement('div');
-                    div.className = 'break-inside-avoid relative group cursor-pointer overflow-hidden mb-4';
-                    div.onclick = () => openLightbox(index);
-                    
-                    const safeSrc = img.src.replace(/'/g, "\\'");
-                    
-                    div.innerHTML = `
-                        <img 
-                            src="${img.src}" 
-                            alt="${img.title}" 
-                            class="w-full h-auto object-cover filter brightness-95 hover:brightness-100 transition-opacity duration-300" 
-                            loading="lazy" 
-                            onerror="handleImgError(this, '${safeSrc}')"
-                        >
-                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 pointer-events-none transition-colors duration-300"></div>
-                    `;
-                    grid.appendChild(div);
-                });
-            }
-            
-            // Highlight active dropdown item
-            document.querySelectorAll('.dropdown-content a').forEach(a => {
-                if(a.dataset.cat === categoryId) {
-                    a.classList.add('text-black', 'bg-gray-50');
-                    a.classList.remove('text-gray-500');
-                } else {
-                    a.classList.remove('text-black', 'bg-gray-50');
-                    a.classList.add('text-gray-500');
-                }
-            });
-
-            // Scroll to top only if not already there (UX improvement)
-            if(window.scrollY > 200) window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        // Lightbox Functions
-        function openLightbox(index) {
-            lightboxIndex = index;
-            updateLightboxContent();
-            document.getElementById('lightbox').classList.remove('opacity-0', 'pointer-events-none');
-            document.body.style.overflow = 'hidden';
-            document.addEventListener('keydown', handleKeyEvents);
-        }
-
-        function closeLightbox() {
-            document.getElementById('lightbox').classList.add('opacity-0', 'pointer-events-none');
-            document.body.style.overflow = '';
-            document.removeEventListener('keydown', handleKeyEvents);
-        }
-
-        function updateLightboxContent() {
-            const photo = currentFilteredImages[lightboxIndex];
-            if(!photo) return;
-            const img = document.getElementById('lightbox-img');
-            img.src = photo.src;
-            img.onerror = () => { img.src = ''; };
-            document.getElementById('lightbox-caption').textContent = photo.title || '';
-        }
-
-        function changeImage(direction) {
-            lightboxIndex += direction;
-            if (lightboxIndex >= currentFilteredImages.length) lightboxIndex = 0;
-            if (lightboxIndex < 0) lightboxIndex = currentFilteredImages.length - 1;
-            updateLightboxContent();
-        }
-
-        function handleKeyEvents(e) {
-            if (e.key === 'Escape') closeLightbox();
-            if (document.getElementById('lightbox').classList.contains('opacity-0')) return;
-            if (e.key === 'ArrowRight') changeImage(1);
-            if (e.key === 'ArrowLeft') changeImage(-1);
-        }
-
-        // Mobile Menu
         function toggleMobileMenu() {
             isMobileMenuOpen = !isMobileMenuOpen;
             const menu = document.getElementById('mobile-menu');

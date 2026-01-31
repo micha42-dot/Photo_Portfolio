@@ -8,7 +8,7 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600&family=Outfit:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600&family=Outfit:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,6 +19,9 @@
                     fontFamily: {
                         sans: ['Manrope', 'sans-serif'],
                         brand: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        'off-white': '#fafafa',
                     }
                 }
             }
@@ -28,6 +31,31 @@
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Dropdown Styles - Standard State: Hidden */
+        .dropdown-content {
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.15s ease-out;
+            pointer-events: none;
+        }
+        
+        /* Dropdown Styles - Active State: Visible (wird per JS Klasse gesteuert) */
+        .dropdown-content.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        /* Pfeil Rotation */
+        .dropdown-arrow {
+            transition: transform 0.2s ease;
+        }
+        .dropdown-active .dropdown-arrow {
+            transform: rotate(180deg);
+        }
     </style>
 <script type="importmap">
 {
@@ -45,65 +73,116 @@
 
     <!-- HEADER -->
     <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-sm w-full border-b border-gray-100">
-        <div class="max-w-[1800px] mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="max-w-[1800px] mx-auto px-6 py-5 flex items-center justify-between">
+            <!-- LOGO -->
             <div class="flex-shrink-0 z-50">
-                <h1 onclick="filterImages('all')" class="text-lg md:text-xl font-bold tracking-[0.2em] uppercase text-black cursor-pointer hover:opacity-70 font-brand">
+                <a href="#all" class="text-lg md:text-xl font-bold tracking-[0.2em] uppercase text-black hover:opacity-70 font-brand">
                     Michael Förtsch
-                </h1>
+                </a>
             </div>
             
-            <!-- Desktop Navigation -->
+            <!-- DESKTOP NAVIGATION -->
             <nav class="hidden md:block">
-                <ul class="flex items-center gap-8" id="desktop-nav">
-                    <!-- Wird per Javascript gefüllt -->
+                <ul class="flex items-center gap-8 text-xs font-medium tracking-[0.15em] uppercase text-gray-500">
+                    
+                    <!-- FOTOGRAFIE DROPDOWN (Click Action) -->
+                    <li class="relative h-full py-2">
+                        <button id="dropdown-btn" onclick="toggleDropdown(event)" class="flex items-center gap-1 hover:text-black focus:outline-none uppercase tracking-[0.15em]">
+                            Fotografie
+                            <svg class="dropdown-arrow w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        
+                        <!-- Dropdown Menu Content 
+                             FIX: left-0 statt left-1/2 für saubere linksbündige Ausrichtung. 
+                             pt-2 statt pt-4 für weniger Abstand. 
+                        -->
+                        <div id="dropdown-menu" class="dropdown-content absolute left-0 top-full pt-2 w-48 z-50">
+                            <div class="bg-white border border-gray-100 shadow-xl py-2 flex flex-col items-start">
+                                <div id="desktop-dropdown-items" class="flex flex-col w-full text-left">
+                                    <!-- Javascript füllt dies -->
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+
+                    <li>
+                        <a href="https://michaelfoertsch.de" target="_blank" rel="noopener noreferrer" class="hover:text-black transition-colors">
+                            Journalismus
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="#info" id="nav-info" class="hover:text-black transition-colors ml-4">
+                            Info & Kontakt
+                        </a>
+                    </li>
                 </ul>
             </nav>
 
-            <!-- Mobile Burger Button -->
+            <!-- MOBILE BURGER BUTTON -->
             <button class="md:hidden z-50 p-2 -mr-2 text-black focus:outline-none" onclick="toggleMobileMenu()">
                 <div class="w-5 flex flex-col items-end gap-[5px]">
-                    <span id="burger-1" class="h-[2px] bg-black w-full"></span>
-                    <span id="burger-2" class="h-[2px] bg-black w-full"></span>
-                    <span id="burger-3" class="h-[2px] bg-black w-full"></span>
+                    <span id="burger-1" class="h-[2px] bg-black w-full transition-transform duration-300"></span>
+                    <span id="burger-2" class="h-[2px] bg-black w-full transition-opacity duration-300"></span>
+                    <span id="burger-3" class="h-[2px] bg-black w-full transition-transform duration-300"></span>
                 </div>
             </button>
         </div>
     </header>
 
     <!-- MOBILE MENU OVERLAY -->
-    <div id="mobile-menu" class="fixed inset-0 bg-white z-40 flex flex-col justify-center items-center opacity-0 pointer-events-none">
-        <nav class="flex flex-col gap-8 text-center" id="mobile-nav-items"></nav>
+    <div id="mobile-menu" class="fixed inset-0 bg-white z-40 flex flex-col justify-center items-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <nav class="flex flex-col gap-6 text-center max-h-[80vh] overflow-y-auto w-full px-6" id="mobile-nav-items">
+            <!-- Wird per JS gefüllt -->
+        </nav>
     </div>
 
-    <!-- MAIN GALLERY -->
-    <main class="flex-grow w-full max-w-[1800px] mx-auto px-4 py-8">
-        <div id="gallery-grid" class="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4"></div>
+    <!-- CONTENT AREA -->
+    <main class="flex-grow w-full max-w-[1800px] mx-auto px-4 py-8 min-h-[60vh]">
         
-        <!-- Fallback Meldung -->
-        <div id="no-results" class="hidden flex justify-center items-center h-64 text-gray-400 font-light">
-            Keine Bilder in dieser Kategorie gefunden.
-        </div>
-    </main>
-
-    <!-- JOURNALISM SECTION (Gray Background) -->
-    <section class="w-full bg-gray-50 py-16 mt-20">
-        <div class="max-w-2xl mx-auto px-6 text-center">
-            <h2 class="text-xl md:text-2xl font-bold tracking-wide mb-4 font-brand">JOURNALISMUS</h2>
-            <p class="text-gray-500 text-sm mb-8 font-light max-w-lg mx-auto leading-relaxed">
-                Neben der Fotografie arbeitet Michael Förtsch als Technologie- und Wissenschaftsjournalist. 
-                Entdecken Sie seine Artikel, Essays und Reportagen.
-            </p>
-            
-            <div>
-                <a href="https://michaelfoertsch.de" target="_blank" rel="noopener noreferrer" class="inline-block bg-black text-white px-8 py-3 text-xs font-bold tracking-widest hover:bg-gray-800 uppercase font-brand">
-                    Zu michaelfoertsch.de
-                </a>
+        <!-- VIEW: GALLERY -->
+        <div id="view-gallery" class="w-full">
+            <div id="gallery-grid" class="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4"></div>
+            <!-- Fallback -->
+            <div id="no-results" class="hidden flex justify-center items-center h-64 text-gray-400 font-light">
+                Keine Bilder in dieser Kategorie gefunden.
             </div>
         </div>
-    </section>
 
-    <!-- FOOTER (White Background) -->
-    <footer class="w-full bg-white py-12 border-t border-gray-100">
+        <!-- VIEW: INFO (Ersetzt das Overlay) -->
+        <div id="view-info" class="hidden w-full max-w-3xl mx-auto py-12 px-4">
+            <div class="grid md:grid-cols-2 gap-12 items-start">
+                <!-- Text Content -->
+                <div class="space-y-6">
+                    <h2 class="text-3xl font-bold font-brand tracking-widest uppercase mb-6">Michael Förtsch</h2>
+                    <div class="prose prose-sm font-light text-gray-600 leading-relaxed">
+                        <p>
+                            Willkommen im Portfolio. Hier finden Sie eine Auswahl an fotografischen Arbeiten aus den Bereichen Landschaft, Urban und Portrait. 
+                            Die Bilder fangen Momente der Stille und der Bewegung im urbanen Raum und in der Natur ein.
+                        </p>
+                        <p>
+                            Neben der Fotografie arbeitet Michael Förtsch als Technologie- und Wissenschaftsjournalist.
+                        </p>
+                    </div>
+                    
+                    <div class="pt-8 border-t border-gray-100">
+                        <h3 class="text-sm font-bold uppercase tracking-widest mb-4">Kontakt</h3>
+                        <a href="mailto:kontakt@michaelfoertsch.de" class="text-gray-900 hover:underline">kontakt@michaelfoertsch.de</a>
+                    </div>
+                </div>
+
+                <!-- Optional Image / Placeholder -->
+                <div class="bg-gray-50 aspect-[3/4] flex items-center justify-center text-gray-300 text-sm tracking-widest uppercase">
+                    <!-- Hier könnte ein Porträtfoto hin -->
+                    Porträtfoto
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="w-full bg-white py-12 border-t border-gray-100 mt-auto">
         <div class="max-w-2xl mx-auto px-6 text-center">
             <div class="text-gray-400 text-xs tracking-wider font-brand flex flex-col items-center gap-2">
                 <p>© <span id="year"></span> MICHAEL FÖRTSCH. ALLE RECHTE VORBEHALTEN.</p>
@@ -114,23 +193,8 @@
         </div>
     </footer>
 
-    <!-- INFO / ÜBER OVERLAY -->
-    <div id="info-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-md opacity-0 pointer-events-none">
-        <button onclick="closeInfo()" class="absolute top-6 right-6 text-black hover:opacity-50 z-50 p-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-        </button>
-        <div class="max-w-2xl px-6 text-center">
-            <h2 class="text-3xl font-bold mb-6 font-brand tracking-widest uppercase">Michael Förtsch</h2>
-            <p class="text-gray-600 leading-relaxed mb-8 font-light">
-                Willkommen im Portfolio. Hier finden Sie eine Auswahl an fotografischen Arbeiten aus den Bereichen Landschaft, Urban und Portrait. 
-                Die Bilder fangen Momente der Stille und der Bewegung im urbanen Raum und in der Natur ein.
-            </p>
-            <p class="text-sm text-gray-400 font-brand uppercase tracking-widest">Fotografie & Journalismus</p>
-        </div>
-    </div>
-
     <!-- LIGHTBOX -->
-    <div id="lightbox" onclick="closeLightbox()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm opacity-0 pointer-events-none cursor-pointer">
+    <div id="lightbox" onclick="closeLightbox()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm opacity-0 pointer-events-none cursor-pointer transition-opacity duration-300">
         <button onclick="closeLightbox()" class="absolute top-6 right-6 text-white/70 hover:text-white z-50 p-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
@@ -144,14 +208,13 @@
         <button onclick="event.stopPropagation(); changeImage(1)" class="absolute right-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg></button>
     </div>
 
-    <!-- 1. HIER LADEN WIR DIE DATEN AUS DER EXTERNEN DATEI -->
+    <!-- DATA LOADER -->
     <script src="data.js"></script>
 
     <script>
         // ==========================================
-        // PROGRAMM-LOGIK (Nicht ändern)
+        // APP LOGIC
         // ==========================================
-        let currentCategory = 'all';
         let allImages = []; 
         let currentFilteredImages = [];
         let lightboxIndex = 0;
@@ -160,6 +223,7 @@
 
         document.getElementById('year').textContent = new Date().getFullYear();
 
+        // Utilities
         function generateTitle(src) {
             if (src.includes('?')) return ''; 
             const filename = src.split('/').pop().split('.')[0];
@@ -175,28 +239,28 @@
             const container = img.parentElement;
             container.innerHTML = `
                 <div class="w-full h-48 bg-gray-50 border border-red-200 flex flex-col items-center justify-center text-center p-4">
-                    <svg class="w-8 h-8 text-red-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                    <p class="text-red-900 font-medium text-sm mb-1">Bild nicht gefunden</p>
-                    <p class="text-xs text-gray-500 font-mono break-all bg-white px-2 py-1 rounded border border-gray-200 select-all">${src}</p>
+                    <p class="text-red-900 font-medium text-sm mb-1">Image Error</p>
+                    <p class="text-xs text-gray-400 font-mono">${src}</p>
                 </div>
             `;
             container.removeAttribute('onclick'); 
             container.classList.remove('cursor-pointer');
         }
 
-        function initGallery() {
+        // Initialization
+        function initApp() {
             if (typeof window.portfolioData === 'undefined') {
-                console.error("data.js konnte nicht geladen werden.");
-                const grid = document.getElementById('gallery-grid');
-                grid.innerHTML = '<div class="col-span-3 text-center text-red-500 py-10 bg-red-50 border border-red-100 rounded p-6"><strong>Fehler:</strong> Die Datei "data.js" wurde nicht gefunden oder enthält Fehler.<br>Bitte überprüfe die Browser-Konsole (F12) für Details.</div>';
+                console.error("data.js not loaded.");
                 return;
             }
 
             const data = window.portfolioData;
-
             allImages = [];
             categories = [];
             
+            // "Alle" Kategorie explizit hinzufügen für die Liste
+            categories.push({ label: 'Alle', id: 'all' });
+
             data.forEach(item => {
                 const catName = item.titel;
                 const catId = getSafeId(catName);
@@ -211,85 +275,165 @@
                 });
             });
 
-            renderNav();
-            filterImages('all');
-        }
-
-        function renderNav() {
-            const deskNav = document.getElementById('desktop-nav');
-            const mobNav = document.getElementById('mobile-nav-items');
-            deskNav.innerHTML = '';
-            mobNav.innerHTML = '';
-
-            categories.forEach(cat => {
-                const li = document.createElement('li');
-                const btn = document.createElement('button');
-                btn.textContent = cat.label;
-                btn.onclick = () => filterImages(cat.id);
-                // Keine Transition
-                btn.className = `text-xs font-medium tracking-[0.15em] uppercase nav-btn-${cat.id}`;
-                li.appendChild(btn);
-                deskNav.appendChild(li);
-
-                const mobBtn = document.createElement('button');
-                mobBtn.textContent = cat.label;
-                mobBtn.onclick = () => { filterImages(cat.id); toggleMobileMenu(); };
-                // Keine Transition
-                mobBtn.className = `text-2xl font-light tracking-widest uppercase mob-nav-btn-${cat.id}`;
-                mobNav.appendChild(mobBtn);
-            });
+            renderNavigation();
             
-            const infoLi = document.createElement('li');
-            infoLi.innerHTML = `<button onclick="openInfo()" class="text-xs font-medium tracking-[0.15em] uppercase text-gray-500 hover:text-black ml-4">INFO</button>`;
-            deskNav.appendChild(infoLi);
-
-            const mobInfoBtn = document.createElement('button');
-            mobInfoBtn.textContent = "INFO";
-            mobInfoBtn.onclick = () => { toggleMobileMenu(); openInfo(); };
-            mobInfoBtn.className = `text-2xl font-light tracking-widest uppercase text-gray-400 mt-4`;
-            mobNav.appendChild(mobInfoBtn);
-        }
-
-        function updateActiveNavState() {
-            categories.forEach(cat => {
-                const btns = document.querySelectorAll(`.nav-btn-${cat.id}`);
-                btns.forEach(b => {
-                    if(currentCategory === cat.id) {
-                        b.classList.remove('text-gray-600');
-                        b.classList.add('text-black');
-                    } else {
-                        b.classList.add('text-gray-600', 'hover:text-black');
-                        b.classList.remove('text-black');
-                    }
-                });
-                const mobBtns = document.querySelectorAll(`.mob-nav-btn-${cat.id}`);
-                mobBtns.forEach(b => {
-                     if(currentCategory === cat.id) b.classList.add('border-b', 'border-black', 'pb-1');
-                     else b.classList.remove('border-b', 'border-black', 'pb-1');
-                });
-            });
-        }
-
-        function filterImages(category) {
-            currentCategory = category;
-            updateActiveNavState();
+            // Event Listener für Hash-Änderungen (Routing)
+            window.addEventListener('hashchange', handleRouting);
             
-            if (category === 'all') {
-                currentFilteredImages = allImages;
+            // Initial Router Call
+            handleRouting();
+            
+            // Global Click Listener für Dropdown Close
+            document.addEventListener('click', handleClickOutside);
+        }
+        
+        // DROPDOWN LOGIC
+        function toggleDropdown(event) {
+            event.stopPropagation(); // Verhindert, dass das Event zum Document bubbled
+            const menu = document.getElementById('dropdown-menu');
+            const btn = document.getElementById('dropdown-btn');
+            
+            menu.classList.toggle('show');
+            
+            // Rotate Arrow (optional Visual Feedback)
+            if(menu.classList.contains('show')) {
+                btn.parentElement.classList.add('dropdown-active');
+                btn.classList.add('text-black');
             } else {
-                currentFilteredImages = allImages.filter(img => img.category === category);
+                btn.parentElement.classList.remove('dropdown-active');
+                btn.classList.remove('text-black');
             }
+        }
+        
+        function closeDropdown() {
+            const menu = document.getElementById('dropdown-menu');
+            const btn = document.getElementById('dropdown-btn');
+            if (menu && menu.classList.contains('show')) {
+                menu.classList.remove('show');
+                btn.parentElement.classList.remove('dropdown-active');
+                btn.classList.remove('text-black');
+            }
+        }
+        
+        function handleClickOutside(event) {
+            // Wenn der Klick nicht innerhalb des Dropdown Buttons oder Menüs war -> Schließen
+            const menu = document.getElementById('dropdown-menu');
+            const btn = document.getElementById('dropdown-btn');
+            
+            if (menu && menu.classList.contains('show')) {
+                if (!menu.contains(event.target) && !btn.contains(event.target)) {
+                    closeDropdown();
+                }
+            }
+        }
+
+        function renderNavigation() {
+            const dropContainer = document.getElementById('desktop-dropdown-items');
+            const mobContainer = document.getElementById('mobile-nav-items');
+            
+            dropContainer.innerHTML = '';
+            mobContainer.innerHTML = '';
+
+            // Desktop Dropdown
+            categories.forEach(cat => {
+                // Dropdown Item
+                const link = document.createElement('a');
+                link.href = `#${cat.id}`;
+                link.textContent = cat.label;
+                // FIX: 'text-left' und 'px-6' für bessere Lesbarkeit und Linksbündigkeit innerhalb des Dropdowns
+                link.className = 'w-full text-left py-2 px-6 text-xs font-medium tracking-[0.15em] uppercase text-gray-500 hover:text-black hover:bg-gray-50 transition-colors nav-link block';
+                link.dataset.cat = cat.id;
+                // WICHTIG: Wenn man im Dropdown klickt, soll es sich schließen
+                link.onclick = () => closeDropdown(); 
+                dropContainer.appendChild(link);
+            });
+
+            // Mobile Menu (Flat list is better UX for mobile)
+            // 1. Home
+            const mobHome = document.createElement('a');
+            mobHome.href = "#all";
+            mobHome.textContent = "HOME / ALLE";
+            mobHome.onclick = toggleMobileMenu;
+            mobHome.className = "text-xl font-light tracking-widest uppercase text-black";
+            mobContainer.appendChild(mobHome);
+
+            // 2. Categories
+            categories.forEach(cat => {
+                if(cat.id === 'all') return;
+                const link = document.createElement('a');
+                link.href = `#${cat.id}`;
+                link.textContent = cat.label;
+                link.onclick = toggleMobileMenu;
+                link.className = 'text-xl font-light tracking-widest uppercase text-gray-600 hover:text-black';
+                mobContainer.appendChild(link);
+            });
+
+            // 3. Static Links
+            const mobJournalism = document.createElement('a');
+            mobJournalism.href = "https://michaelfoertsch.de";
+            mobJournalism.target = "_blank";
+            mobJournalism.textContent = "JOURNALISMUS";
+            mobJournalism.className = "text-xl font-light tracking-widest uppercase text-gray-600 hover:text-black mt-4";
+            mobContainer.appendChild(mobJournalism);
+
+            const mobInfo = document.createElement('a');
+            mobInfo.href = "#info";
+            mobInfo.textContent = "INFO & KONTAKT";
+            mobInfo.onclick = toggleMobileMenu;
+            mobInfo.className = "text-xl font-light tracking-widest uppercase text-gray-600 hover:text-black";
+            mobContainer.appendChild(mobInfo);
+        }
+
+        // The "Router"
+        function handleRouting() {
+            // Hash auslesen (z.B. "#urban" -> "urban")
+            let hash = window.location.hash.substring(1);
+            if (!hash) hash = 'all';
+
+            const viewGallery = document.getElementById('view-gallery');
+            const viewInfo = document.getElementById('view-info');
+            const navInfo = document.getElementById('nav-info');
+
+            // Reset States
+            viewGallery.classList.add('hidden');
+            viewInfo.classList.add('hidden');
+            navInfo.classList.remove('text-black');
+            navInfo.classList.add('text-gray-500'); // inactive style
+
+            if (hash === 'info') {
+                // Info Page
+                viewInfo.classList.remove('hidden');
+                navInfo.classList.add('text-black');
+                navInfo.classList.remove('text-gray-500');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                // Gallery Page
+                viewGallery.classList.remove('hidden');
+                
+                // Prüfen ob Hash eine gültige Kategorie ist
+                const isValidCat = categories.some(c => c.id === hash);
+                const categoryToLoad = isValidCat ? hash : 'all';
+                
+                renderGallery(categoryToLoad);
+            }
+        }
+
+        function renderGallery(categoryId) {
+            currentFilteredImages = (categoryId === 'all') 
+                ? allImages 
+                : allImages.filter(img => img.category === categoryId);
             
             const grid = document.getElementById('gallery-grid');
+            const noResults = document.getElementById('no-results');
+            
             grid.innerHTML = '';
             
             if (currentFilteredImages.length === 0) {
-                document.getElementById('no-results').classList.remove('hidden');
+                noResults.classList.remove('hidden');
             } else {
-                document.getElementById('no-results').classList.add('hidden');
+                noResults.classList.add('hidden');
                 currentFilteredImages.forEach((img, index) => {
                     const div = document.createElement('div');
-                    // Keine Transition
                     div.className = 'break-inside-avoid relative group cursor-pointer overflow-hidden mb-4';
                     div.onclick = () => openLightbox(index);
                     
@@ -299,28 +443,32 @@
                         <img 
                             src="${img.src}" 
                             alt="${img.title}" 
-                            class="w-full h-auto object-cover filter brightness-95 hover:brightness-100" 
+                            class="w-full h-auto object-cover filter brightness-95 hover:brightness-100 transition-opacity duration-300" 
                             loading="lazy" 
                             onerror="handleImgError(this, '${safeSrc}')"
                         >
-                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 pointer-events-none"></div>
+                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 pointer-events-none transition-colors duration-300"></div>
                     `;
                     grid.appendChild(div);
                 });
             }
-            if(window.scrollY > 100) window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Highlight active dropdown item
+            document.querySelectorAll('.dropdown-content a').forEach(a => {
+                if(a.dataset.cat === categoryId) {
+                    a.classList.add('text-black', 'bg-gray-50');
+                    a.classList.remove('text-gray-500');
+                } else {
+                    a.classList.remove('text-black', 'bg-gray-50');
+                    a.classList.add('text-gray-500');
+                }
+            });
+
+            // Scroll to top only if not already there (UX improvement)
+            if(window.scrollY > 200) window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function openInfo() {
-            document.getElementById('info-overlay').classList.remove('opacity-0', 'pointer-events-none');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeInfo() {
-            document.getElementById('info-overlay').classList.add('opacity-0', 'pointer-events-none');
-            document.body.style.overflow = '';
-        }
-
+        // Lightbox Functions
         function openLightbox(index) {
             lightboxIndex = index;
             updateLightboxContent();
@@ -340,10 +488,7 @@
             if(!photo) return;
             const img = document.getElementById('lightbox-img');
             img.src = photo.src;
-            img.onerror = () => { 
-                img.src = ''; // Clear broken image
-                document.getElementById('lightbox-caption').textContent = 'Bild nicht gefunden: ' + photo.src;
-            };
+            img.onerror = () => { img.src = ''; };
             document.getElementById('lightbox-caption').textContent = photo.title || '';
         }
 
@@ -355,15 +500,13 @@
         }
 
         function handleKeyEvents(e) {
-            if (e.key === 'Escape') {
-                closeLightbox();
-                closeInfo();
-            }
+            if (e.key === 'Escape') closeLightbox();
             if (document.getElementById('lightbox').classList.contains('opacity-0')) return;
             if (e.key === 'ArrowRight') changeImage(1);
             if (e.key === 'ArrowLeft') changeImage(-1);
         }
 
+        // Mobile Menu
         function toggleMobileMenu() {
             isMobileMenuOpen = !isMobileMenuOpen;
             const menu = document.getElementById('mobile-menu');
@@ -384,7 +527,7 @@
             }
         }
 
-        window.addEventListener('load', initGallery);
+        window.addEventListener('load', initApp);
     </script>
 <script type="module" src="/index.tsx"></script>
 </body>

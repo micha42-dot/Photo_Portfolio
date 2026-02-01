@@ -45,7 +45,6 @@ window.portfolioData = [
             "images/Cinematic/Bild (15).jpg",
             "images/Cinematic/Bild (16).jpg",
             "images/Cinematic/Bild (17).jpg"        ]
-        ]
     },
     {
         titel: "PORTRÄTS",

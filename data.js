@@ -45,13 +45,22 @@ window.portfolioData = [
             "images/Cinematic/Bild (15).jpg",
             "images/Cinematic/Bild (16).jpg",
             "images/Cinematic/Bild (17).jpg"        ]
+        ]
     },
     {
         titel: "PORTRÄTS",
         bilder: [
             // Zum Testen lassen wir hier noch funktionierende Online-Bilder drin
-            "https://picsum.photos/800/1000?random=8",
-            "https://picsum.photos/900/1200?random=9"
+            "images/Portraits/Bild (1).jpg",
+            "images/Portraits/Bild (2).jpg",
+            "images/Portraits/Bild (3).jpg",
+            "images/Portraits/Bild (4).jpg",
+            "images/Portraits/Bild (5).jpg",
+            "images/Portraits/Bild (6).jpg",
+            "images/Portraits/Bild (7).jpg",
+            "images/Portraits/Bild (8).jpg",
+            "images/Portraits/Bild (9).jpg",
+            "images/Portraits/Bild (10).jpg"
         ]
     },
     {

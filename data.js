@@ -25,11 +25,26 @@ window.portfolioData = [
             "images/Landschaft & Natur/Bild (12).jpg"        ]
     },
     {
-        titel: "URBAN",
+        titel: "Cinematic",
         bilder: [
             // Beispiel: Einfach direkt im "images" Ordner
-            "images/urban_01.jpg",
-            "images/urban_02.jpg"
+            "images/Cinematic/Bild (1).jpg",
+            "images/Cinematic/Bild (2).jpg",
+            "images/Cinematic/Bild (3).jpg",
+            "images/Cinematic/Bild (4).jpg",
+            "images/Cinematic/Bild (5).jpg",
+            "images/Cinematic/Bild (6).jpg",
+            "images/Cinematic/Bild (7).jpg",
+            "images/Cinematic/Bild (8).jpg",
+            "images/Cinematic/Bild (9).jpg",
+            "images/Cinematic/Bild (10).jpg",
+            "images/Cinematic/Bild (11).jpg",
+            "images/Cinematic/Bild (12).jpg",
+            "images/Cinematic/Bild (13).jpg",
+            "images/Cinematic/Bild (14).jpg",
+            "images/Cinematic/Bild (15).jpg",
+            "images/Cinematic/Bild (16).jpg",
+            "images/Cinematic/Bild (17).jpg"        ]
         ]
     },
     {

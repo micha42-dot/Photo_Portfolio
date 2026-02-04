@@ -28,9 +28,7 @@ window.portfolioData = [
             "images/Landschaft & Natur/Bild (15).jpg",
             "images/Landschaft & Natur/Bild (16).jpg",
             "images/Landschaft & Natur/Bild (17).jpg",
-            "images/Landschaft & Natur/Bild (18).jpg"
-
-]
+            "images/Landschaft & Natur/Bild (18).jpg" ]
     },
     {
         titel: "Cinematic",
@@ -64,7 +62,6 @@ window.portfolioData = [
             "images/Cinematic/Bild (26).jpg",
             "images/Cinematic/Bild (27).jpg",
             "images/Cinematic/Bild (28).jpg"
-]
         ]
     },
     {

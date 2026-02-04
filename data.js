@@ -22,7 +22,15 @@ window.portfolioData = [
             "images/Landschaft & Natur/Bild (9).jpg",
             "images/Landschaft & Natur/Bild (10).jpg",
             "images/Landschaft & Natur/Bild (11).jpg",
-            "images/Landschaft & Natur/Bild (12).jpg"        ]
+            "images/Landschaft & Natur/Bild (12).jpg",
+            "images/Landschaft & Natur/Bild (13).jpg",
+            "images/Landschaft & Natur/Bild (14).jpg",
+            "images/Landschaft & Natur/Bild (15).jpg",
+            "images/Landschaft & Natur/Bild (16).jpg",
+            "images/Landschaft & Natur/Bild (17).jpg",
+            "images/Landschaft & Natur/Bild (18).jpg"
+
+]
     },
     {
         titel: "Cinematic",
@@ -44,7 +52,20 @@ window.portfolioData = [
             "images/Cinematic/Bild (14).jpg",
             "images/Cinematic/Bild (15).jpg",
             "images/Cinematic/Bild (16).jpg",
-            "images/Cinematic/Bild (17).jpg"        ]
+            "images/Cinematic/Bild (17).jpg",
+            "images/Cinematic/Bild (18).jpg",
+            "images/Cinematic/Bild (19).jpg",
+            "images/Cinematic/Bild (20).jpg",
+            "images/Cinematic/Bild (21).jpg",
+            "images/Cinematic/Bild (22).jpg",
+            "images/Cinematic/Bild (23).jpg",
+            "images/Cinematic/Bild (24).jpg",
+            "images/Cinematic/Bild (25).jpg",
+            "images/Cinematic/Bild (26).jpg",
+            "images/Cinematic/Bild (27).jpg",
+            "images/Cinematic/Bild (28).jpg"
+]
+        ]
     },
     {
         titel: "PORTRÄTS",
@@ -59,7 +80,11 @@ window.portfolioData = [
             "images/Portraits/Bild (7).jpg",
             "images/Portraits/Bild (8).jpg",
             "images/Portraits/Bild (9).jpg",
-            "images/Portraits/Bild (10).jpg"
+            "images/Portraits/Bild (10).jpg",
+            "images/Portraits/Bild (11).jpg",
+            "images/Portraits/Bild (12).jpg",
+            "images/Portraits/Bild (13).jpg",
+            "images/Portraits/Bild (13).jpg"
         ]
     },
     {

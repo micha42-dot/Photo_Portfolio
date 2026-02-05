@@ -86,7 +86,7 @@
 
     <!-- HEADER -->
     <header class="fixed top-0 w-full bg-white/95 backdrop-blur-md z-40 border-b border-gray-100 transition-all duration-300" id="main-header">
-        <div class="max-w-[1800px] mx-auto px-6 h-20 flex items-center justify-between">
+        <div class="max-w-[1800px] mx-auto px-6 h-12 flex items-center justify-between">
             
             <!-- Logo (Klick führt zur Random Home View) -->
             <a href="#" onclick="app.filter('home')" class="font-display font-bold text-lg md:text-xl tracking-[0.15em] uppercase hover:opacity-60 transition-opacity">
@@ -97,14 +97,14 @@
             <nav class="hidden md:flex items-center gap-8">
                 
                 <!-- Dropdown -->
-                <div class="relative group cursor-pointer py-6">
+                <div class="relative group cursor-pointer py-4">
                     <span class="text-xs font-display font-medium tracking-[0.15em] uppercase text-gray-400 group-hover:text-black transition-colors flex items-center gap-1">
                         Kategorien
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </span>
                     
                     <!-- Dropdown Content -->
-                    <div class="dropdown-menu absolute left-1/2 -translate-x-1/2 top-full bg-white border border-gray-100 shadow-xl p-2 min-w-[200px] flex flex-col gap-1">
+                    <div class="dropdown-menu absolute left-0 top-full bg-white border border-gray-100 shadow-xl p-2 min-w-[200px] flex flex-col gap-1">
                         <div id="desktop-dropdown-items">
                             <!-- Items via JS -->
                         </div>
@@ -139,7 +139,7 @@
     </div>
 
     <!-- MAIN GALLERY -->
-    <main class="flex-grow pt-32 pb-20 px-4 md:px-8 w-full max-w-[1800px] mx-auto">
+    <main class="flex-grow pt-24 pb-20 px-4 md:px-8 w-full max-w-[1800px] mx-auto">
         
         <!-- Warnung falls keine Daten -->
         <div id="no-data-warning" class="hidden w-full max-w-2xl mx-auto text-center py-12 px-6 border border-yellow-200 bg-yellow-50 rounded-lg">
@@ -163,9 +163,6 @@
             <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce mx-1 delay-200"></div>
         </div>
         
-        <div id="end-message" class="hidden text-center py-12 text-gray-400 text-xs tracking-widest uppercase">
-            Ende der Auswahl
-        </div>
     </main>
 
     <!-- FOOTER -->
@@ -183,7 +180,7 @@
     </footer>
 
     <!-- LIGHTBOX -->
-    <div id="lightbox" class="fixed inset-0 z-50 bg-white/98 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+    <div id="lightbox" class="fixed inset-0 z-50 bg-white/98 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300" onclick="if(event.target === this) app.closeLightbox()">
         <button onclick="app.closeLightbox()" class="absolute top-6 right-6 p-4 hover:opacity-50 transition-opacity z-50">
             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
@@ -272,7 +269,6 @@
                 this.currentCategory = catId;
                 this.renderedCount = 0;
                 document.getElementById('gallery-container').innerHTML = ''; 
-                document.getElementById('end-message').classList.add('hidden');
                 
                 window.scrollTo({top: 0, behavior: 'smooth'});
 
@@ -310,9 +306,6 @@
                 
                 if (this.renderedCount >= this.currentImages.length) {
                     trigger.classList.remove('opacity-100');
-                    if(this.currentImages.length > 0) {
-                        document.getElementById('end-message').classList.remove('hidden');
-                    }
                     return;
                 }
 
@@ -353,11 +346,6 @@
                     container.appendChild(fragment);
                     this.renderedCount += nextBatch.length;
                     trigger.classList.remove('opacity-100');
-                    
-                    // Wenn Home View fertig geladen, direkt Footer anzeigen
-                    if(this.currentCategory === 'home' && this.renderedCount >= this.currentImages.length) {
-                         document.getElementById('end-message').classList.remove('hidden');
-                    }
                 }, 50);
             },
 

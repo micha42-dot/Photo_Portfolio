@@ -63,8 +63,8 @@
 <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@^19.2.4",
     "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
     "vite": "https://esm.sh/vite@^7.3.1",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.3"
   }
@@ -118,14 +118,13 @@
     <main class="flex-grow pt-32 pb-20 px-4 md:px-8 w-full max-w-[1800px] mx-auto">
         
         <!-- Warnung falls keine Daten -->
-        <div id="no-data-warning" class="hidden w-full max-w-2xl mx-auto text-center py-12 px-6 border border-red-200 bg-red-50 rounded-lg">
-            <h3 class="text-red-800 font-bold mb-2">Keine Bilder gefunden</h3>
-            <p class="text-red-600 text-sm mb-4">Die Datei <code>data.js</code> ist leer oder wurde nicht geladen.</p>
+        <div id="no-data-warning" class="hidden w-full max-w-2xl mx-auto text-center py-12 px-6 border border-yellow-200 bg-yellow-50 rounded-lg">
+            <h3 class="text-yellow-800 font-bold mb-2">Galerie wird geladen...</h3>
+            <p class="text-yellow-700 text-sm mb-4">Falls hier dauerhaft keine Bilder erscheinen:</p>
             <div class="text-left bg-white p-4 rounded text-xs font-mono text-gray-600 border border-gray-200 overflow-x-auto">
-                <p>1. Stelle sicher, dass Bilder im Ordner <code>./images</code> liegen.</p>
-                <p>2. Öffne das Terminal in diesem Ordner.</p>
-                <p>3. Führe diesen Befehl aus: <span class="text-black font-bold">npm run scan</span></p>
-                <p>4. Lade diese Seite neu.</p>
+                <p>1. Hast du Bilder in den Ordner <code>images/</code> hochgeladen?</p>
+                <p>2. Warte 1-2 Minuten nach dem Hochladen, GitHub verarbeitet die Bilder gerade.</p>
+                <p>3. Wenn du lokal testest, musst du die Datei <code>data.js</code> manuell bearbeiten.</p>
             </div>
         </div>
 
@@ -194,7 +193,7 @@
             init: function() {
                 // Check if data loaded
                 if(!window.portfolioData || window.portfolioData.length === 0) {
-                    console.error("data.js ist leer oder fehlt.");
+                    console.warn("data.js ist leer oder fehlt.");
                     document.getElementById('no-data-warning').classList.remove('hidden');
                     return;
                 }

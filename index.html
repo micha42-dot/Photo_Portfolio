@@ -211,21 +211,40 @@
             }
         }
 
-        // Neue Funktion zum sicheren Kodieren von Pfaden mit Sonderzeichen
+        // VERBESSERTE Encode Funktion:
+        // Maskiert auch Klammern () explizit mit %28 und %29, da GitHub/Jekyll hier manchmal strikt ist.
         function encodeFilePath(path) {
-            return path.split('/').map(part => encodeURIComponent(part)).join('/');
+            // 1. Backslashes zu Slashes korrigieren
+            let normalized = path.replace(/\\/g, '/');
+            
+            return normalized.split('/').map(part => {
+                // Standard URL Encoding
+                let encoded = encodeURIComponent(part);
+                // WICHTIG: Klammern manuell maskieren für maximale Kompatibilität
+                encoded = encoded.replace(/\(/g, '%28').replace(/\)/g, '%29');
+                // Auch Hochkommas sicherheitshalber
+                encoded = encoded.replace(/'/g, '%27');
+                return encoded;
+            }).join('/');
         }
 
         function getSafeId(str) {
             return str.toLowerCase().replace(/[^a-z0-9]/g, '');
         }
 
-        function handleImgError(img, src) {
+        function handleImgError(img, rawSrc) {
             const container = img.parentElement;
+            
+            // Fehlermeldung mit Hinweis zur Fehlersuche
+            const isJpg = rawSrc.toLowerCase().endsWith('.jpg');
+            let hint = "Prüfe den Pfad.";
+            if(isJpg) hint = "Prüfe Groß-/Kleinschreibung (.jpg vs .JPG?)";
+
             container.innerHTML = `
                 <div class="w-full h-48 bg-gray-50 border border-red-200 flex flex-col items-center justify-center text-center p-4">
-                    <p class="text-red-900 font-medium text-sm mb-1">Image Error</p>
-                    <p class="text-xs text-gray-400 font-mono break-all">${src}</p>
+                    <p class="text-red-900 font-bold text-[10px] uppercase mb-2 tracking-wider">Bild nicht gefunden</p>
+                    <p class="text-[10px] text-gray-500 font-mono break-all mb-2 leading-tight">${rawSrc}</p>
+                    <p class="text-[9px] text-red-600 font-medium">${hint}</p>
                 </div>
             `;
             container.removeAttribute('onclick'); 

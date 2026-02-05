@@ -28,7 +28,7 @@
         }
     </script>
     <style>
-        /* CSS Grid Masonry Fallback - Stabil und schnell */
+        /* CSS Grid Masonry Fallback */
         .gallery-grid {
             display: grid;
             grid-template-columns: repeat(1, 1fr);
@@ -37,11 +37,12 @@
         @media (min-width: 640px) { .gallery-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1024px) { .gallery-grid { grid-template-columns: repeat(3, 1fr); } }
 
-        /* Performance Optimierungen */
+        /* Image States */
         .img-container {
             background-color: #f3f4f6;
             overflow: hidden;
             position: relative;
+            min-height: 200px; /* Mindesthöhe damit man was sieht */
         }
         
         .gallery-img {
@@ -63,13 +64,12 @@
 {
   "imports": {
     "react": "https://esm.sh/react@^19.2.4",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.3",
     "react/": "https://esm.sh/react@^19.2.4/",
-    "vite": "https://esm.sh/vite@^7.3.1"
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.3"
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
 <body class="bg-white text-gray-900 flex flex-col min-h-screen">
 
@@ -116,6 +116,19 @@
 
     <!-- MAIN GALLERY -->
     <main class="flex-grow pt-32 pb-20 px-4 md:px-8 w-full max-w-[1800px] mx-auto">
+        
+        <!-- Warnung falls keine Daten -->
+        <div id="no-data-warning" class="hidden w-full max-w-2xl mx-auto text-center py-12 px-6 border border-red-200 bg-red-50 rounded-lg">
+            <h3 class="text-red-800 font-bold mb-2">Keine Bilder gefunden</h3>
+            <p class="text-red-600 text-sm mb-4">Die Datei <code>data.js</code> ist leer oder wurde nicht geladen.</p>
+            <div class="text-left bg-white p-4 rounded text-xs font-mono text-gray-600 border border-gray-200 overflow-x-auto">
+                <p>1. Stelle sicher, dass Bilder im Ordner <code>./images</code> liegen.</p>
+                <p>2. Öffne das Terminal in diesem Ordner.</p>
+                <p>3. Führe diesen Befehl aus: <span class="text-black font-bold">npm run scan</span></p>
+                <p>4. Lade diese Seite neu.</p>
+            </div>
+        </div>
+
         <div id="gallery-container" class="gallery-grid">
             <!-- Bilder werden hier eingefügt -->
         </div>
@@ -169,29 +182,32 @@
 
     <!-- APP LOGIC -->
     <script>
-        // Namespacing zur Vermeidung von globalen Konflikten
         const app = {
             data: [],
             currentImages: [],
             renderedCount: 0,
-            batchSize: 15, // Konservativ für Firefox
+            batchSize: 15, 
             lightboxIndex: 0,
             observer: null,
             currentCategory: 'all',
 
             init: function() {
-                if(!window.portfolioData) {
-                    console.error("Keine Daten gefunden. Bitte 'npm run scan' ausführen.");
+                // Check if data loaded
+                if(!window.portfolioData || window.portfolioData.length === 0) {
+                    console.error("data.js ist leer oder fehlt.");
+                    document.getElementById('no-data-warning').classList.remove('hidden');
                     return;
                 }
+                
                 this.data = window.portfolioData;
+                console.log(`App init: ${this.data.length} Kategorien geladen.`);
+                
                 document.getElementById('year').textContent = new Date().getFullYear();
 
                 this.setupNavigation();
                 this.setupObserver();
-                this.filter('all'); // Start mit allen Bildern
+                this.filter('all'); 
                 
-                // Keyboard Events für Lightbox
                 document.addEventListener('keydown', (e) => {
                     if (document.getElementById('lightbox').classList.contains('opacity-0')) return;
                     if (e.key === 'Escape') this.closeLightbox();
@@ -204,12 +220,10 @@
                 const deskNav = document.getElementById('desktop-categories');
                 const mobNav = document.getElementById('mobile-nav-items');
                 
-                // "Alle" Link
                 const allLink = this.createNavLink('all', 'Alle');
                 deskNav.appendChild(allLink);
                 mobNav.appendChild(this.createMobileLink('all', 'Alle'));
 
-                // Kategorien Links
                 this.data.forEach(cat => {
                     const link = this.createNavLink(cat.id, cat.label);
                     deskNav.appendChild(link);
@@ -236,22 +250,18 @@
             filter: function(catId) {
                 this.currentCategory = catId;
                 this.renderedCount = 0;
-                document.getElementById('gallery-container').innerHTML = ''; // Reset Grid
+                document.getElementById('gallery-container').innerHTML = ''; 
                 document.getElementById('end-message').classList.add('hidden');
                 
-                // Active State Update
                 document.querySelectorAll('.nav-link').forEach(btn => {
                     if(btn.dataset.id === catId) btn.classList.add('active', 'text-black');
                     else btn.classList.remove('active', 'text-black');
                 });
 
-                // Daten filtern
                 if (catId === 'all') {
-                    // Alle Bilder flatten
                     this.currentImages = this.data.flatMap(cat => 
                         cat.images.map(src => ({ src: src, title: this.formatTitle(src) }))
                     );
-                    // Shuffle für "Alle" (optional, sieht aber besser aus)
                     this.currentImages.sort(() => Math.random() - 0.5);
                 } else {
                     const category = this.data.find(c => c.id === catId);
@@ -261,7 +271,8 @@
                         this.currentImages = [];
                     }
                 }
-
+                
+                console.log(`Kategorie '${catId}' gewählt. ${this.currentImages.length} Bilder gefunden.`);
                 this.loadMore();
                 window.scrollTo({top: 0, behavior: 'smooth'});
             },
@@ -272,7 +283,9 @@
                 
                 if (this.renderedCount >= this.currentImages.length) {
                     trigger.classList.remove('opacity-100');
-                    document.getElementById('end-message').classList.remove('hidden');
+                    if(this.currentImages.length > 0) {
+                        document.getElementById('end-message').classList.remove('hidden');
+                    }
                     return;
                 }
 
@@ -282,36 +295,30 @@
                 const fragment = document.createDocumentFragment();
 
                 nextBatch.forEach((imgData, index) => {
-                    // Globaler Index für Lightbox
                     const globalIndex = this.renderedCount + index;
-
                     const div = document.createElement('div');
                     div.className = 'img-container group cursor-pointer';
                     div.onclick = () => this.openLightbox(globalIndex);
 
-                    const img = document.createElement('img');
-                    img.className = 'gallery-img';
-                    img.alt = imgData.title;
-                    img.loading = "lazy"; // Native Lazy Loading
-                    img.decoding = "async"; // Wichtig für Performance
-                    
-                    // URL Encoding Fix
-                    const encodedSrc = imgData.src.split('/').map(encodeURIComponent).join('/');
-                    img.src = encodedSrc;
+                    // Pfad-Sicherheit: Wir nutzen den Pfad direkt, außer er enthält 'unsafe' chars
+                    // Encode nur die einzelnen Segmente, nicht die Slashes
+                    const safeSrc = imgData.src.split('/').map(s => encodeURIComponent(s)).join('/');
 
-                    img.onload = () => img.classList.add('loaded');
-                    img.onerror = () => div.style.display = 'none'; // Kaputte Bilder verstecken
-
-                    // Hover Overlay
-                    const overlay = document.createElement('div');
-                    overlay.className = "absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300";
-
-                    div.appendChild(img);
-                    div.appendChild(overlay);
+                    div.innerHTML = `
+                        <img 
+                            src="${safeSrc}" 
+                            alt="${imgData.title}" 
+                            class="gallery-img" 
+                            loading="lazy" 
+                            decoding="async"
+                            onload="this.classList.add('loaded')"
+                            onerror="this.parentElement.innerHTML='<div class=\\'flex flex-col items-center justify-center h-full text-red-500 text-xs text-center p-4 border border-red-200 bg-red-50\\'><span class=\\'font-bold\\'>Fehler</span><span class=\\'break-all mt-1 opacity-75\\'>${imgData.src}</span></div>'"
+                        >
+                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none"></div>
+                    `;
                     fragment.appendChild(div);
                 });
 
-                // RequestAnimationFrame verhindert Blockieren des Main Threads
                 requestAnimationFrame(() => {
                     container.appendChild(fragment);
                     this.renderedCount += nextBatch.length;
@@ -329,7 +336,6 @@
                 this.observer.observe(document.getElementById('loading-trigger'));
             },
 
-            // --- LIGHTBOX ---
             openLightbox: function(index) {
                 this.lightboxIndex = index;
                 this.updateLightbox();
@@ -352,10 +358,12 @@
                 const img = document.getElementById('lightbox-img');
                 const caption = document.getElementById('lightbox-caption');
                 
-                // Sauber laden
+                const safeSrc = data.src.split('/').map(s => encodeURIComponent(s)).join('/');
+                
+                // Preload
                 const tempImg = new Image();
                 tempImg.onload = () => { img.src = tempImg.src; };
-                tempImg.src = data.src.split('/').map(encodeURIComponent).join('/');
+                tempImg.src = safeSrc;
                 
                 caption.textContent = data.title;
             },
@@ -370,7 +378,6 @@
                 this.updateLightbox();
             },
 
-            // --- HELPER ---
             toggleMobileMenu: function() {
                 const menu = document.getElementById('mobile-menu');
                 menu.classList.toggle('translate-x-full');
@@ -378,15 +385,11 @@
 
             formatTitle: function(pathStr) {
                 const filename = pathStr.split('/').pop().split('.')[0];
-                // Entfernt Nummernklammern wie (1) und Unterstriche
                 return filename.replace(/[\(\)\d_-]/g, ' ').trim();
             }
         };
 
-        // Start
         window.addEventListener('DOMContentLoaded', () => app.init());
-
     </script>
-<script type="module" src="/index.tsx"></script>
 </body>
 </html>

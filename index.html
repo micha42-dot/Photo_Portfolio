@@ -57,12 +57,15 @@
             transform: rotate(180deg);
         }
         
-        /* Hardware Acceleration & Rendering Fixes für Firefox */
+        /* 
+           PERFORMANCE FIX:
+           Entfernt 'will-change' und 3D-Transforms. 
+           Diese verursachen in Firefox bei vielen Bildern massive Speicherprobleme (GPU).
+           Standard-Rendering ist hier stabiler.
+        */
         .gallery-item {
-            transform: translateZ(0);
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-            will-change: transform, opacity;
+            /* Keine erzwungene Hardware-Beschleunigung mehr */
+            position: relative;
         }
         
         /* Smooth Image Loading */
@@ -207,8 +210,8 @@
         // ==========================================
         
         // KONFIGURATION PERFORMANCE
-        // Reduziert auf 12 um Freezes zu verhindern
-        const BATCH_SIZE = 12; 
+        // Batch Size moderat erhöhen, da CSS-Optimierungen Stabilität bringen
+        const BATCH_SIZE = 16; 
         let renderedCount = 0;
 
         let allImages = []; 
@@ -295,10 +298,11 @@
             const sentinel = document.getElementById('scroll-sentinel');
             observer = new IntersectionObserver((entries) => {
                 if (entries[0].isIntersecting) {
-                    renderBatch();
+                    // Nutzung von requestAnimationFrame für weicheres Scrollen
+                    requestAnimationFrame(renderBatch);
                 }
             }, { 
-                rootMargin: '200px' // Etwas konservativeres Laden
+                rootMargin: '200px'
             });
             observer.observe(sentinel);
 
@@ -341,7 +345,7 @@
             } else {
                 noResults.classList.add('hidden');
                 // Ersten Batch sofort rendern
-                renderBatch();
+                requestAnimationFrame(renderBatch);
             }
             
             // Active State im Menü setzen
@@ -356,7 +360,6 @@
             });
         }
 
-        // Neue Funktion: Rendert Bilder in kleinen Paketen
         function renderBatch() {
             // Abbruch, wenn alle Bilder gerendert sind
             if (renderedCount >= currentFilteredImages.length) return;
@@ -364,11 +367,10 @@
             const grid = document.getElementById('gallery-grid');
             const batch = currentFilteredImages.slice(renderedCount, renderedCount + BATCH_SIZE);
             
-            // DocumentFragment verwenden: Verhindert mehrfaches Neu-Berechnen des Layouts
+            // DocumentFragment verwenden
             const fragment = document.createDocumentFragment();
 
             batch.forEach((img, i) => {
-                // Wichtig: Der Index für die Lightbox muss global sein, nicht relativ zum Batch
                 const globalIndex = renderedCount + i;
                 
                 const div = document.createElement('div');

@@ -99,7 +99,7 @@ window.portfolioData = [
 {
   titel: "Stadt & Architektur",
   bilder: [
-    "images/Stadt & Architektur/(1).jpg",
+    "images/Stadt %26 Architektur/(1).jpg",
     "images/Stadt & Architektur/(2).jpg",
     "images/Stadt & Architektur/(3).jpg",
     "images/Stadt & Architektur/(4).jpg",

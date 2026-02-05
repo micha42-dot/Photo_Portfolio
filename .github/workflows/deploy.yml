@@ -24,13 +24,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # --- NEU: Node.js installieren und Scan automatisch ausführen ---
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Generate Gallery Data
+        run: node scan.js
+      # -------------------------------------------------------------
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Lädt alles hoch. Da package.json jetzt leer ist, sollte kein Auto-Build starten.
           path: '.'
 
       - name: Deploy to GitHub Pages

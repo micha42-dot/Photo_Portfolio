@@ -28,8 +28,129 @@ window.portfolioData = [
             "images/Landschaft & Natur/Bild (15).jpg",
             "images/Landschaft & Natur/Bild (16).jpg",
             "images/Landschaft & Natur/Bild (17).jpg",
-            "images/Landschaft & Natur/Bild (18).jpg" ]
+            "images/Landschaft & Natur/Bild (18).jpg"
+]
     },
+
+{
+  titel: "Nebelwelten",
+  bilder: [
+    "images/Nebelwelten/(1).jpg",
+    "images/Nebelwelten/(2).jpg",
+    "images/Nebelwelten/(3).jpg",
+    "images/Nebelwelten/(4).jpg",
+    "images/Nebelwelten/(5).jpg",
+    "images/Nebelwelten/(6).jpg",
+    "images/Nebelwelten/(7).jpg",
+    "images/Nebelwelten/(8).jpg",
+    "images/Nebelwelten/(9).jpg",
+    "images/Nebelwelten/(10).jpg",
+    "images/Nebelwelten/(11).jpg",
+    "images/Nebelwelten/(12).jpg",
+    "images/Nebelwelten/(13).jpg",
+    "images/Nebelwelten/(14).jpg",
+    "images/Nebelwelten/(15).jpg",
+    "images/Nebelwelten/(16).jpg",
+    "images/Nebelwelten/(17).jpg",
+    "images/Nebelwelten/(18).jpg",
+    "images/Nebelwelten/(19).jpg",
+    "images/Nebelwelten/(20).jpg",
+    "images/Nebelwelten/(21).jpg",
+    "images/Nebelwelten/(22).jpg",
+    "images/Nebelwelten/(23).jpg",
+    "images/Nebelwelten/(24).jpg",
+    "images/Nebelwelten/(25).jpg",
+    "images/Nebelwelten/(26).jpg"
+  ]
+},
+
+{
+  titel: "Momente",
+  bilder: [
+    "images/Momente/(1).jpg",
+    "images/Momente/(2).jpg",
+    "images/Momente/(3).jpg",
+    "images/Momente/(4).jpg",
+    "images/Momente/(5).jpg",
+    "images/Momente/(6).jpg",
+    "images/Momente/(7).jpg",
+    "images/Momente/(8).jpg",
+    "images/Momente/(9).jpg",
+    "images/Momente/(10).jpg"
+  ]
+},
+
+{
+  titel: "Liminal Scenes & Places",
+  bilder: [
+    "images/Liminal Scenes & Places/(1).jpg",
+    "images/Liminal Scenes & Places/(2).jpg",
+    "images/Liminal Scenes & Places/(3).jpg",
+    "images/Liminal Scenes & Places/(4).jpg",
+    "images/Liminal Scenes & Places/(5).jpg",
+    "images/Liminal Scenes & Places/(6).jpg",
+    "images/Liminal Scenes & Places/(7).jpg",
+    "images/Liminal Scenes & Places/(8).jpg",
+    "images/Liminal Scenes & Places/(9).jpg",
+    "images/Liminal Scenes & Places/(10).jpg"
+  ]
+},
+
+{
+  titel: "Stadt & Architektur",
+  bilder: [
+    "images/Stadt & Architektur/(1).jpg",
+    "images/Stadt & Architektur/(2).jpg",
+    "images/Stadt & Architektur/(3).jpg",
+    "images/Stadt & Architektur/(4).jpg",
+    "images/Stadt & Architektur/(5).jpg",
+    "images/Stadt & Architektur/(6).jpg",
+    "images/Stadt & Architektur/(7).jpg",
+    "images/Stadt & Architektur/(8).jpg",
+    "images/Stadt & Architektur/(9).jpg",
+    "images/Stadt & Architektur/(10).jpg",
+    "images/Stadt & Architektur/(11).jpg",
+    "images/Stadt & Architektur/(12).jpg",
+    "images/Stadt & Architektur/(13).jpg",
+    "images/Stadt & Architektur/(14).jpg",
+    "images/Stadt & Architektur/(15).jpg",
+    "images/Stadt & Architektur/(16).jpg",
+    "images/Stadt & Architektur/(17).jpg",
+    "images/Stadt & Architektur/(18).jpg",
+    "images/Stadt & Architektur/(19).jpg",
+    "images/Stadt & Architektur/(20).jpg",
+    "images/Stadt & Architektur/(21).jpg",
+    "images/Stadt & Architektur/(22).jpg",
+    "images/Stadt & Architektur/(23).jpg",
+    "images/Stadt & Architektur/(24).jpg",
+    "images/Stadt & Architektur/(25).jpg",
+    "images/Stadt & Architektur/(26).jpg",
+    "images/Stadt & Architektur/(27).jpg",
+    "images/Stadt & Architektur/(28).jpg",
+    "images/Stadt & Architektur/(29).jpg",
+    "images/Stadt & Architektur/(30).jpg",
+    "images/Stadt & Architektur/(31).jpg",
+    "images/Stadt & Architektur/(32).jpg",
+    "images/Stadt & Architektur/(33).jpg",
+    "images/Stadt & Architektur/(34).jpg",
+    "images/Stadt & Architektur/(35).jpg",
+    "images/Stadt & Architektur/(36).jpg",
+    "images/Stadt & Architektur/(37).jpg",
+    "images/Stadt & Architektur/(38).jpg",
+    "images/Stadt & Architektur/(39).jpg",
+    "images/Stadt & Architektur/(40).jpg",
+    "images/Stadt & Architektur/(41).jpg",
+    "images/Stadt & Architektur/(42).jpg",
+    "images/Stadt & Architektur/(43).jpg",
+    "images/Stadt & Architektur/(44).jpg",
+    "images/Stadt & Architektur/(45).jpg",
+    "images/Stadt & Architektur/(46).jpg",
+    "images/Stadt & Architektur/(47).jpg",
+    "images/Stadt & Architektur/(48).jpg",
+    "images/Stadt & Architektur/(49).jpg"
+  ]
+},
+
     {
         titel: "Cinematic",
         bilder: [
@@ -81,14 +202,48 @@ window.portfolioData = [
             "images/Portraits/Bild (11).jpg",
             "images/Portraits/Bild (12).jpg",
             "images/Portraits/Bild (13).jpg",
-            "images/Portraits/Bild (13).jpg"
+            "images/Portraits/Bild (14).jpg",
+            "images/Portraits/Bild (15).jpg",
+            "images/Portraits/Bild (16).jpg",
+            "images/Portraits/Bild (17).jpg",
+            "images/Portraits/Bild (18).jpg",
+            "images/Portraits/Bild (19).jpg",
+            "images/Portraits/Bild (20).jpg",
+            "images/Portraits/Bild (21).jpg"
         ]
     },
-    {
-        titel: "KONZEPTUELL",
-        bilder: [
-            "images/concept/art1.jpg",
-            "images/concept/art2.jpg"
-        ]
-    }
+{
+  titel: "Automotiv",
+  bilder: [
+    "images/Automotiv/(1).jpg",
+    "images/Automotiv/(2).jpg",
+    "images/Automotiv/(3).jpg",
+    "images/Automotiv/(4).jpg",
+    "images/Automotiv/(5).jpg",
+    "images/Automotiv/(6).jpg",
+    "images/Automotiv/(7).jpg",
+    "images/Automotiv/(8).jpg",
+    "images/Automotiv/(9).jpg",
+    "images/Automotiv/(10).jpg",
+    "images/Automotiv/(11).jpg",
+    "images/Automotiv/(12).jpg",
+    "images/Automotiv/(13).jpg",
+    "images/Automotiv/(14).jpg",
+    "images/Automotiv/(15).jpg"
+  ]
+},  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ];

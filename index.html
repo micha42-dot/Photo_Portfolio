@@ -3,554 +3,390 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Michael Förtsch | Fotografie</title>
+    <title>Michael Förtsch | Portfolio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600&family=Outfit:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Tailwind CSS (CDN) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500&family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
+
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
                         sans: ['Manrope', 'sans-serif'],
-                        brand: ['Outfit', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
                     },
                     colors: {
-                        'off-white': '#fafafa',
+                        black: '#0a0a0a',
+                        gray: { 50: '#f9fafb', 100: '#f3f4f6', 900: '#111827' }
                     }
                 }
             }
         }
     </script>
-
     <style>
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        /* Dropdown Styles - Standard State: Hidden */
-        .dropdown-content {
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(10px);
-            transition: all 0.15s ease-out;
-            pointer-events: none;
+        /* CSS Grid Masonry Fallback - Stabil und schnell */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 1.5rem;
         }
-        
-        /* Dropdown Styles - Active State: Visible (wird per JS Klasse gesteuert) */
-        .dropdown-content.show {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-            pointer-events: auto;
-        }
+        @media (min-width: 640px) { .gallery-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .gallery-grid { grid-template-columns: repeat(3, 1fr); } }
 
-        /* Pfeil Rotation */
-        .dropdown-arrow {
-            transition: transform 0.2s ease;
-        }
-        .dropdown-active .dropdown-arrow {
-            transform: rotate(180deg);
-        }
-        
-        /* 
-           PERFORMANCE FIX:
-           Entfernt 'will-change' und 3D-Transforms. 
-           Diese verursachen in Firefox bei vielen Bildern massive Speicherprobleme (GPU).
-           Standard-Rendering ist hier stabiler.
-        */
-        .gallery-item {
-            /* Keine erzwungene Hardware-Beschleunigung mehr */
+        /* Performance Optimierungen */
+        .img-container {
+            background-color: #f3f4f6;
+            overflow: hidden;
             position: relative;
         }
         
-        /* Smooth Image Loading */
-        .img-loading { opacity: 0; }
-        .img-loaded { opacity: 1; }
+        .gallery-img {
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .gallery-img.loaded {
+            opacity: 1;
+        }
+
+        /* Navigation Active State */
+        .nav-link.active { color: black; font-weight: 500; }
     </style>
 <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@^19.2.4",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.3",
     "react/": "https://esm.sh/react@^19.2.4/",
-    "vite": "https://esm.sh/vite@^7.3.1",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
+    "vite": "https://esm.sh/vite@^7.3.1"
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
-<body class="bg-white text-gray-900 font-sans selection:bg-black selection:text-white flex flex-col min-h-screen">
+<body class="bg-white text-gray-900 flex flex-col min-h-screen">
 
     <!-- HEADER -->
-    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-sm w-full border-b border-gray-100">
-        <div class="max-w-[1800px] mx-auto px-6 py-5 flex items-center justify-between">
-            <!-- LOGO -->
-            <div class="flex-shrink-0 z-50">
-                <a href="#all" class="text-lg md:text-xl font-bold tracking-[0.2em] uppercase text-black hover:opacity-70 font-brand">
-                    Michael Förtsch
-                </a>
-            </div>
+    <header class="fixed top-0 w-full bg-white/95 backdrop-blur-md z-40 border-b border-gray-100 transition-all duration-300" id="main-header">
+        <div class="max-w-[1800px] mx-auto px-6 h-20 flex items-center justify-between">
             
-            <!-- DESKTOP NAVIGATION -->
-            <nav class="hidden md:block">
-                <ul class="flex items-center gap-8 text-xs font-medium tracking-[0.15em] uppercase text-gray-500">
-                    
-                    <!-- FOTOGRAFIE DROPDOWN (Click Action) -->
-                    <li class="relative h-full py-2">
-                        <button id="dropdown-btn" onclick="toggleDropdown(event)" class="flex items-center gap-1 hover:text-black focus:outline-none uppercase tracking-[0.15em]">
-                            Fotografie
-                            <svg class="dropdown-arrow w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                        </button>
-                        
-                        <!-- Dropdown Menu Content -->
-                        <div id="dropdown-menu" class="dropdown-content absolute left-0 top-full pt-2 w-48 z-50">
-                            <div class="bg-white border border-gray-100 shadow-xl py-2 flex flex-col items-start">
-                                <div id="desktop-dropdown-items" class="flex flex-col w-full text-left">
-                                    <!-- Javascript füllt dies -->
-                                </div>
-                            </div>
-                        </div>
-                    </li>
+            <!-- Logo -->
+            <a href="#" onclick="app.filter('all')" class="font-display font-bold text-lg md:text-xl tracking-[0.15em] uppercase hover:opacity-60 transition-opacity">
+                Michael Förtsch
+            </a>
 
-                    <li>
-                        <!-- LINK ZU INFO.HTML -->
-                        <a href="info.html" id="nav-info" class="hover:text-black transition-colors ml-4">
-                            Info & Kontakt
-                        </a>
-                    </li>
-                </ul>
+            <!-- Desktop Nav -->
+            <nav class="hidden md:flex items-center gap-8">
+                <!-- Kategorien werden hier per JS eingefügt -->
+                <div id="desktop-categories" class="flex gap-6"></div>
+                
+                <div class="h-4 w-[1px] bg-gray-300 mx-2"></div>
+                
+                <a href="info.html" class="text-xs font-display font-medium tracking-[0.15em] uppercase text-gray-400 hover:text-black transition-colors">
+                    Info
+                </a>
             </nav>
 
-            <!-- MOBILE BURGER BUTTON -->
-            <button class="md:hidden z-50 p-2 -mr-2 text-black focus:outline-none" onclick="toggleMobileMenu()">
-                <div class="w-5 flex flex-col items-end gap-[5px]">
-                    <span id="burger-1" class="h-[2px] bg-black w-full transition-transform duration-300"></span>
-                    <span id="burger-2" class="h-[2px] bg-black w-full transition-opacity duration-300"></span>
-                    <span id="burger-3" class="h-[2px] bg-black w-full transition-transform duration-300"></span>
-                </div>
+            <!-- Mobile Menu Toggle -->
+            <button class="md:hidden p-2 -mr-2 text-black" onclick="app.toggleMobileMenu()">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             </button>
         </div>
     </header>
 
-    <!-- MOBILE MENU OVERLAY -->
-    <div id="mobile-menu" class="fixed inset-0 bg-white z-40 flex flex-col justify-center items-center opacity-0 pointer-events-none transition-opacity duration-300">
-        <nav class="flex flex-col gap-6 text-center max-h-[80vh] overflow-y-auto w-full px-6" id="mobile-nav-items">
-            <!-- Wird per JS gefüllt -->
+    <!-- MOBILE MENU -->
+    <div id="mobile-menu" class="fixed inset-0 bg-white z-50 transform translate-x-full transition-transform duration-300 flex flex-col p-8">
+        <div class="flex justify-end mb-8">
+            <button onclick="app.toggleMobileMenu()" class="p-2">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <nav id="mobile-nav-items" class="flex flex-col gap-6 text-xl font-display font-light uppercase tracking-widest text-center">
+            <!-- Items via JS -->
         </nav>
+        <a href="info.html" class="mt-8 text-center text-xl font-display font-light uppercase tracking-widest text-gray-400">Info & Kontakt</a>
     </div>
 
-    <!-- CONTENT AREA -->
-    <main class="flex-grow w-full max-w-[1800px] mx-auto px-4 py-8 min-h-[60vh]">
-        
-        <!-- VIEW: GALLERY -->
-        <div id="view-gallery" class="w-full">
-            <div id="gallery-grid" class="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4"></div>
-            
-            <!-- Sentinel for Infinite Scroll (Unsichtbares Element am Ende) -->
-            <div id="scroll-sentinel" class="w-full h-20 opacity-0 pointer-events-none"></div>
-
-            <!-- Fallback -->
-            <div id="no-results" class="hidden flex justify-center items-center h-64 text-gray-400 font-light">
-                Keine Bilder in dieser Kategorie gefunden.
-            </div>
+    <!-- MAIN GALLERY -->
+    <main class="flex-grow pt-32 pb-20 px-4 md:px-8 w-full max-w-[1800px] mx-auto">
+        <div id="gallery-container" class="gallery-grid">
+            <!-- Bilder werden hier eingefügt -->
         </div>
-
+        
+        <!-- Loading Sentinel / Status -->
+        <div id="loading-trigger" class="h-24 w-full flex items-center justify-center mt-12 opacity-0 transition-opacity">
+            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce mx-1"></div>
+            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce mx-1 delay-100"></div>
+            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce mx-1 delay-200"></div>
+        </div>
+        
+        <div id="end-message" class="hidden text-center py-12 text-gray-400 text-xs tracking-widest uppercase">
+            Ende der Galerie
+        </div>
     </main>
 
-    <!-- JOURNALISM SECTION (Pre-Footer) -->
-    <section class="w-full bg-gray-50 py-10 border-t border-gray-100 mt-auto">
-        <div class="max-w-2xl mx-auto px-6 text-center">
-            <h2 class="text-2xl font-bold tracking-[0.2em] uppercase mb-6 font-brand">Journalismus</h2>
-            <p class="text-gray-600 font-light mb-8 leading-relaxed max-w-lg mx-auto">
-                Neben der Fotografie arbeite ich als Technologie- und Wissenschaftsjournalist.
-            </p>
-            <a href="https://michaelfoertsch.de" target="_blank" rel="noopener noreferrer" class="inline-block border border-black px-8 py-3 text-xs font-bold tracking-widest uppercase hover:bg-black hover:text-white transition-colors">
-                Zur Website
-            </a>
-        </div>
-    </section>
-
     <!-- FOOTER -->
-    <footer class="w-full bg-white py-12 border-t border-gray-100">
-        <div class="max-w-2xl mx-auto px-6 text-center">
-            <div class="text-gray-400 text-xs tracking-wider font-brand flex flex-col items-center gap-2">
-                <p>© <span id="year"></span> MICHAEL FÖRTSCH. ALLE RECHTE VORBEHALTEN.</p>
-                <a href="https://michaelfoertsch.de/impressum.html" target="_blank" rel="noopener noreferrer" class="hover:text-black underline decoration-1 underline-offset-2">
-                    IMPRESSUM
-                </a>
-            </div>
+    <footer class="border-t border-gray-100 bg-gray-50 py-16 text-center">
+        <h3 class="font-display font-bold tracking-widest uppercase mb-4 text-lg">Journalismus</h3>
+        <p class="text-gray-500 font-light mb-8 max-w-md mx-auto px-4">
+            Technologie- und Wissenschaftsjournalismus.
+        </p>
+        <a href="https://michaelfoertsch.de" target="_blank" class="inline-block border border-black px-8 py-3 text-xs font-bold tracking-widest uppercase hover:bg-black hover:text-white transition-colors">
+            Zur Website
+        </a>
+        <div class="mt-16 text-[10px] text-gray-400 font-display tracking-widest">
+            &copy; <span id="year"></span> MICHAEL FÖRTSCH.
         </div>
     </footer>
 
     <!-- LIGHTBOX -->
-    <div id="lightbox" onclick="closeLightbox()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm opacity-0 pointer-events-none cursor-pointer transition-opacity duration-300">
-        <button onclick="closeLightbox()" class="absolute top-6 right-6 text-white/70 hover:text-white z-50 p-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+    <div id="lightbox" class="fixed inset-0 z-50 bg-white/98 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <button onclick="app.closeLightbox()" class="absolute top-6 right-6 p-4 hover:opacity-50 transition-opacity z-50">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
-        <div class="relative w-full h-full flex items-center justify-center p-4 md:p-12">
-            <img id="lightbox-img" src="" alt="Portfolio" onclick="event.stopPropagation()" class="max-h-full max-w-full object-contain shadow-2xl cursor-default">
-            <div class="absolute bottom-6 left-0 right-0 text-center pointer-events-none">
-                <p id="lightbox-caption" class="text-white/80 text-sm tracking-widest uppercase font-light font-brand"></p>
-            </div>
-        </div>
-        <button onclick="event.stopPropagation(); changeImage(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg></button>
-        <button onclick="event.stopPropagation(); changeImage(1)" class="absolute right-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg></button>
+        
+        <button onclick="app.prevImage()" class="absolute left-4 top-1/2 -translate-y-1/2 p-4 hover:opacity-50 transition-opacity hidden md:block">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        
+        <button onclick="app.nextImage()" class="absolute right-4 top-1/2 -translate-y-1/2 p-4 hover:opacity-50 transition-opacity hidden md:block">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+
+        <img id="lightbox-img" class="max-w-[95vw] max-h-[90vh] object-contain shadow-2xl" src="" alt="">
+        <div id="lightbox-caption" class="absolute bottom-6 left-0 right-0 text-center font-display text-xs tracking-widest uppercase text-gray-500"></div>
     </div>
 
-    <!-- DATA LOADER -->
+    <!-- DATA -->
     <script src="data.js"></script>
 
+    <!-- APP LOGIC -->
     <script>
-        // ==========================================
-        // APP LOGIC
-        // ==========================================
-        
-        // KONFIGURATION PERFORMANCE
-        // Batch Size moderat erhöhen, da CSS-Optimierungen Stabilität bringen
-        const BATCH_SIZE = 16; 
-        let renderedCount = 0;
+        // Namespacing zur Vermeidung von globalen Konflikten
+        const app = {
+            data: [],
+            currentImages: [],
+            renderedCount: 0,
+            batchSize: 15, // Konservativ für Firefox
+            lightboxIndex: 0,
+            observer: null,
+            currentCategory: 'all',
 
-        let allImages = []; 
-        let currentFilteredImages = [];
-        let lightboxIndex = 0;
-        let isMobileMenuOpen = false;
-        let categories = []; 
-        let observer; // Für Infinite Scroll
+            init: function() {
+                if(!window.portfolioData) {
+                    console.error("Keine Daten gefunden. Bitte 'npm run scan' ausführen.");
+                    return;
+                }
+                this.data = window.portfolioData;
+                document.getElementById('year').textContent = new Date().getFullYear();
 
-        document.getElementById('year').textContent = new Date().getFullYear();
-
-        // Utilities
-        function generateTitle(src) {
-            try {
-                const decoded = decodeURIComponent(src);
-                if (decoded.includes('?')) return ''; 
-                const filename = decoded.split('/').pop().split('.')[0];
-                let title = filename.replace(/[-_]/g, ' ');
-                return title.replace(/\w\S*/g, (w) => (w.replace(/^\w/, (c) => c.toUpperCase())));
-            } catch(e) {
-                return '';
-            }
-        }
-
-        function encodeFilePath(path) {
-            let normalized = path.replace(/\\/g, '/');
-            return normalized.split('/').map(part => {
-                let encoded = encodeURIComponent(part);
-                encoded = encoded.replace(/\(/g, '%28').replace(/\)/g, '%29');
-                encoded = encoded.replace(/'/g, '%27');
-                return encoded;
-            }).join('/');
-        }
-
-        function getSafeId(str) {
-            return str.toLowerCase().replace(/[^a-z0-9]/g, '');
-        }
-
-        function handleImgError(img, rawSrc) {
-            const container = img.parentElement;
-            const isJpg = rawSrc.toLowerCase().endsWith('.jpg');
-            let hint = "Prüfe den Pfad.";
-            if(isJpg) hint = "Prüfe Groß-/Kleinschreibung (.jpg vs .JPG?)";
-
-            container.innerHTML = `
-                <div class="w-full h-48 bg-gray-50 border border-red-200 flex flex-col items-center justify-center text-center p-4">
-                    <p class="text-red-900 font-bold text-[10px] uppercase mb-2 tracking-wider">Bild nicht gefunden</p>
-                    <p class="text-[10px] text-gray-500 font-mono break-all mb-2 leading-tight">${rawSrc}</p>
-                    <p class="text-[9px] text-red-600 font-medium">${hint}</p>
-                </div>
-            `;
-            container.removeAttribute('onclick'); 
-            container.classList.remove('cursor-pointer');
-        }
-
-        // Initialization
-        function initApp() {
-            if (typeof window.portfolioData === 'undefined') {
-                console.error("data.js not loaded.");
-                return;
-            }
-
-            const data = window.portfolioData;
-            allImages = [];
-            categories = [];
-            
-            categories.push({ label: 'Alle', id: 'all' });
-
-            data.forEach(item => {
-                const catName = item.titel;
-                const catId = getSafeId(catName);
-                categories.push({ label: catName, id: catId });
-
-                item.bilder.forEach(src => {
-                    allImages.push({
-                        src: src,
-                        category: catId,
-                        title: generateTitle(src)
-                    });
+                this.setupNavigation();
+                this.setupObserver();
+                this.filter('all'); // Start mit allen Bildern
+                
+                // Keyboard Events für Lightbox
+                document.addEventListener('keydown', (e) => {
+                    if (document.getElementById('lightbox').classList.contains('opacity-0')) return;
+                    if (e.key === 'Escape') this.closeLightbox();
+                    if (e.key === 'ArrowRight') this.nextImage();
+                    if (e.key === 'ArrowLeft') this.prevImage();
                 });
-            });
+            },
 
-            // Intersection Observer für Infinite Scroll einrichten
-            const sentinel = document.getElementById('scroll-sentinel');
-            observer = new IntersectionObserver((entries) => {
-                if (entries[0].isIntersecting) {
-                    // Nutzung von requestAnimationFrame für weicheres Scrollen
-                    requestAnimationFrame(renderBatch);
-                }
-            }, { 
-                rootMargin: '200px'
-            });
-            observer.observe(sentinel);
+            setupNavigation: function() {
+                const deskNav = document.getElementById('desktop-categories');
+                const mobNav = document.getElementById('mobile-nav-items');
+                
+                // "Alle" Link
+                const allLink = this.createNavLink('all', 'Alle');
+                deskNav.appendChild(allLink);
+                mobNav.appendChild(this.createMobileLink('all', 'Alle'));
 
-            renderNavigation();
-            
-            window.addEventListener('hashchange', handleRouting);
-            handleRouting();
-            
-            document.addEventListener('click', handleClickOutside);
-        }
-        
-        // --- RENDERING LOGIC (Optimized) ---
+                // Kategorien Links
+                this.data.forEach(cat => {
+                    const link = this.createNavLink(cat.id, cat.label);
+                    deskNav.appendChild(link);
+                    mobNav.appendChild(this.createMobileLink(cat.id, cat.label));
+                });
+            },
 
-        function handleRouting() {
-            let hash = window.location.hash.substring(1);
-            if (!hash) hash = 'all';
-            const isValidCat = categories.some(c => c.id === hash);
-            const categoryToLoad = isValidCat ? hash : 'all';
-            
-            // Scroll nach oben bei Kategoriewechsel
-            window.scrollTo({ top: 0, behavior: 'auto' });
-            
-            renderGallery(categoryToLoad);
-        }
+            createNavLink: function(id, label) {
+                const btn = document.createElement('button');
+                btn.textContent = label;
+                btn.className = `text-xs font-display font-medium tracking-[0.15em] uppercase text-gray-400 hover:text-black transition-colors nav-link`;
+                btn.dataset.id = id;
+                btn.onclick = () => this.filter(id);
+                return btn;
+            },
 
-        function renderGallery(categoryId) {
-            currentFilteredImages = (categoryId === 'all') 
-                ? allImages 
-                : allImages.filter(img => img.category === categoryId);
-            
-            const grid = document.getElementById('gallery-grid');
-            const noResults = document.getElementById('no-results');
-            
-            // Grid komplett leeren und Zähler zurücksetzen
-            grid.innerHTML = '';
-            renderedCount = 0;
-            
-            if (currentFilteredImages.length === 0) {
-                noResults.classList.remove('hidden');
-            } else {
-                noResults.classList.add('hidden');
-                // Ersten Batch sofort rendern
-                requestAnimationFrame(renderBatch);
-            }
-            
-            // Active State im Menü setzen
-            document.querySelectorAll('.dropdown-content a').forEach(a => {
-                if(a.dataset.cat === categoryId) {
-                    a.classList.add('text-black', 'bg-gray-50');
-                    a.classList.remove('text-gray-500');
+            createMobileLink: function(id, label) {
+                const btn = document.createElement('button');
+                btn.textContent = label;
+                btn.onclick = () => { this.filter(id); this.toggleMobileMenu(); };
+                return btn;
+            },
+
+            filter: function(catId) {
+                this.currentCategory = catId;
+                this.renderedCount = 0;
+                document.getElementById('gallery-container').innerHTML = ''; // Reset Grid
+                document.getElementById('end-message').classList.add('hidden');
+                
+                // Active State Update
+                document.querySelectorAll('.nav-link').forEach(btn => {
+                    if(btn.dataset.id === catId) btn.classList.add('active', 'text-black');
+                    else btn.classList.remove('active', 'text-black');
+                });
+
+                // Daten filtern
+                if (catId === 'all') {
+                    // Alle Bilder flatten
+                    this.currentImages = this.data.flatMap(cat => 
+                        cat.images.map(src => ({ src: src, title: this.formatTitle(src) }))
+                    );
+                    // Shuffle für "Alle" (optional, sieht aber besser aus)
+                    this.currentImages.sort(() => Math.random() - 0.5);
                 } else {
-                    a.classList.remove('text-black', 'bg-gray-50');
-                    a.classList.add('text-gray-500');
+                    const category = this.data.find(c => c.id === catId);
+                    if(category) {
+                        this.currentImages = category.images.map(src => ({ src: src, title: this.formatTitle(src) }));
+                    } else {
+                        this.currentImages = [];
+                    }
                 }
-            });
-        }
 
-        function renderBatch() {
-            // Abbruch, wenn alle Bilder gerendert sind
-            if (renderedCount >= currentFilteredImages.length) return;
+                this.loadMore();
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            },
 
-            const grid = document.getElementById('gallery-grid');
-            const batch = currentFilteredImages.slice(renderedCount, renderedCount + BATCH_SIZE);
-            
-            // DocumentFragment verwenden
-            const fragment = document.createDocumentFragment();
-
-            batch.forEach((img, i) => {
-                const globalIndex = renderedCount + i;
+            loadMore: function() {
+                const container = document.getElementById('gallery-container');
+                const trigger = document.getElementById('loading-trigger');
                 
-                const div = document.createElement('div');
-                div.className = 'gallery-item break-inside-avoid relative group cursor-pointer overflow-hidden mb-4';
-                div.onclick = () => openLightbox(globalIndex);
-                
-                const safeSrc = img.src.replace(/'/g, "\\'");
-                const encodedSrc = encodeFilePath(img.src);
-
-                div.innerHTML = `
-                    <img 
-                        src="${encodedSrc}" 
-                        alt="${img.title}" 
-                        class="w-full h-auto object-cover filter brightness-95 hover:brightness-100 transition-opacity duration-300 img-loading" 
-                        loading="lazy" 
-                        decoding="async"
-                        onload="this.classList.add('img-loaded')"
-                        onerror="handleImgError(this, '${safeSrc}')"
-                    >
-                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 pointer-events-none transition-colors duration-300"></div>
-                `;
-                fragment.appendChild(div);
-            });
-
-            grid.appendChild(fragment);
-            renderedCount += batch.length;
-        }
-
-        // --- NAVIGATION & UI (Unverändert) ---
-
-        function toggleDropdown(event) {
-            event.stopPropagation();
-            const menu = document.getElementById('dropdown-menu');
-            const btn = document.getElementById('dropdown-btn');
-            
-            menu.classList.toggle('show');
-            
-            if(menu.classList.contains('show')) {
-                btn.parentElement.classList.add('dropdown-active');
-                btn.classList.add('text-black');
-            } else {
-                btn.parentElement.classList.remove('dropdown-active');
-                btn.classList.remove('text-black');
-            }
-        }
-        
-        function closeDropdown() {
-            const menu = document.getElementById('dropdown-menu');
-            const btn = document.getElementById('dropdown-btn');
-            if (menu && menu.classList.contains('show')) {
-                menu.classList.remove('show');
-                btn.parentElement.classList.remove('dropdown-active');
-                btn.classList.remove('text-black');
-            }
-        }
-        
-        function handleClickOutside(event) {
-            const menu = document.getElementById('dropdown-menu');
-            const btn = document.getElementById('dropdown-btn');
-            
-            if (menu && menu.classList.contains('show')) {
-                if (!menu.contains(event.target) && !btn.contains(event.target)) {
-                    closeDropdown();
+                if (this.renderedCount >= this.currentImages.length) {
+                    trigger.classList.remove('opacity-100');
+                    document.getElementById('end-message').classList.remove('hidden');
+                    return;
                 }
-            }
-        }
 
-        function renderNavigation() {
-            const dropContainer = document.getElementById('desktop-dropdown-items');
-            const mobContainer = document.getElementById('mobile-nav-items');
-            
-            dropContainer.innerHTML = '';
-            mobContainer.innerHTML = '';
+                trigger.classList.add('opacity-100');
 
-            // Desktop Dropdown
-            categories.forEach(cat => {
-                const link = document.createElement('a');
-                link.href = `#${cat.id}`;
-                link.textContent = cat.label;
-                link.className = 'w-full text-left py-2 px-6 text-xs font-medium tracking-[0.15em] uppercase text-gray-500 hover:text-black hover:bg-gray-50 transition-colors nav-link block';
-                link.dataset.cat = cat.id;
-                link.onclick = () => closeDropdown(); 
-                dropContainer.appendChild(link);
-            });
+                const nextBatch = this.currentImages.slice(this.renderedCount, this.renderedCount + this.batchSize);
+                const fragment = document.createDocumentFragment();
 
-            // Mobile Menu
-            const mobHome = document.createElement('a');
-            mobHome.href = "#all";
-            mobHome.textContent = "HOME / ALLE";
-            mobHome.onclick = toggleMobileMenu;
-            mobHome.className = "text-xl font-light tracking-widest uppercase text-black";
-            mobContainer.appendChild(mobHome);
+                nextBatch.forEach((imgData, index) => {
+                    // Globaler Index für Lightbox
+                    const globalIndex = this.renderedCount + index;
 
-            categories.forEach(cat => {
-                if(cat.id === 'all') return;
-                const link = document.createElement('a');
-                link.href = `#${cat.id}`;
-                link.textContent = cat.label;
-                link.onclick = toggleMobileMenu;
-                link.className = 'text-xl font-light tracking-widest uppercase text-gray-600 hover:text-black';
-                mobContainer.appendChild(link);
-            });
+                    const div = document.createElement('div');
+                    div.className = 'img-container group cursor-pointer';
+                    div.onclick = () => this.openLightbox(globalIndex);
 
-            const mobJournalism = document.createElement('a');
-            mobJournalism.href = "https://michaelfoertsch.de";
-            mobJournalism.target = "_blank";
-            mobJournalism.textContent = "JOURNALISMUS";
-            mobJournalism.className = "text-xl font-light tracking-widest uppercase text-gray-600 hover:text-black mt-4";
-            mobContainer.appendChild(mobJournalism);
+                    const img = document.createElement('img');
+                    img.className = 'gallery-img';
+                    img.alt = imgData.title;
+                    img.loading = "lazy"; // Native Lazy Loading
+                    img.decoding = "async"; // Wichtig für Performance
+                    
+                    // URL Encoding Fix
+                    const encodedSrc = imgData.src.split('/').map(encodeURIComponent).join('/');
+                    img.src = encodedSrc;
 
-            const mobInfo = document.createElement('a');
-            mobInfo.href = "info.html";
-            mobInfo.textContent = "INFO & KONTAKT";
-            mobInfo.className = "text-xl font-light tracking-widest uppercase text-gray-600 hover:text-black";
-            mobContainer.appendChild(mobInfo);
-        }
+                    img.onload = () => img.classList.add('loaded');
+                    img.onerror = () => div.style.display = 'none'; // Kaputte Bilder verstecken
 
-        // --- LIGHTBOX ---
+                    // Hover Overlay
+                    const overlay = document.createElement('div');
+                    overlay.className = "absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300";
 
-        function openLightbox(index) {
-            lightboxIndex = index;
-            updateLightboxContent();
-            document.getElementById('lightbox').classList.remove('opacity-0', 'pointer-events-none');
-            document.body.style.overflow = 'hidden';
-            document.addEventListener('keydown', handleKeyEvents);
-        }
+                    div.appendChild(img);
+                    div.appendChild(overlay);
+                    fragment.appendChild(div);
+                });
 
-        function closeLightbox() {
-            document.getElementById('lightbox').classList.add('opacity-0', 'pointer-events-none');
-            document.body.style.overflow = '';
-            document.removeEventListener('keydown', handleKeyEvents);
-        }
+                // RequestAnimationFrame verhindert Blockieren des Main Threads
+                requestAnimationFrame(() => {
+                    container.appendChild(fragment);
+                    this.renderedCount += nextBatch.length;
+                    trigger.classList.remove('opacity-100');
+                });
+            },
 
-        function updateLightboxContent() {
-            const photo = currentFilteredImages[lightboxIndex];
-            if(!photo) return;
-            const img = document.getElementById('lightbox-img');
-            
-            img.src = encodeFilePath(photo.src);
-            
-            img.onerror = () => { img.src = ''; };
-            document.getElementById('lightbox-caption').textContent = photo.title || '';
-        }
+            setupObserver: function() {
+                const options = { root: null, rootMargin: '400px', threshold: 0.1 };
+                this.observer = new IntersectionObserver((entries) => {
+                    if(entries[0].isIntersecting) {
+                        this.loadMore();
+                    }
+                }, options);
+                this.observer.observe(document.getElementById('loading-trigger'));
+            },
 
-        function changeImage(direction) {
-            lightboxIndex += direction;
-            if (lightboxIndex >= currentFilteredImages.length) lightboxIndex = 0;
-            if (lightboxIndex < 0) lightboxIndex = currentFilteredImages.length - 1;
-            updateLightboxContent();
-        }
-
-        function handleKeyEvents(e) {
-            if (e.key === 'Escape') closeLightbox();
-            if (document.getElementById('lightbox').classList.contains('opacity-0')) return;
-            if (e.key === 'ArrowRight') changeImage(1);
-            if (e.key === 'ArrowLeft') changeImage(-1);
-        }
-
-        // Mobile Menu
-        function toggleMobileMenu() {
-            isMobileMenuOpen = !isMobileMenuOpen;
-            const menu = document.getElementById('mobile-menu');
-            const [b1, b2, b3] = ['burger-1','burger-2','burger-3'].map(id => document.getElementById(id));
-
-            if (isMobileMenuOpen) {
-                menu.classList.remove('opacity-0', 'pointer-events-none');
-                b1.classList.add('rotate-45', 'translate-y-[7px]');
-                b2.classList.add('opacity-0');
-                b3.classList.add('-rotate-45', '-translate-y-[7px]');
+            // --- LIGHTBOX ---
+            openLightbox: function(index) {
+                this.lightboxIndex = index;
+                this.updateLightbox();
+                const lb = document.getElementById('lightbox');
+                lb.classList.remove('opacity-0', 'pointer-events-none');
                 document.body.style.overflow = 'hidden';
-            } else {
-                menu.classList.add('opacity-0', 'pointer-events-none');
-                b1.classList.remove('rotate-45', 'translate-y-[7px]');
-                b2.classList.remove('opacity-0');
-                b3.classList.remove('-rotate-45', '-translate-y-[7px]');
-                document.body.style.overflow = '';
-            }
-        }
+            },
 
-        window.addEventListener('load', initApp);
+            closeLightbox: function() {
+                const lb = document.getElementById('lightbox');
+                lb.classList.add('opacity-0', 'pointer-events-none');
+                document.body.style.overflow = '';
+                setTimeout(() => { document.getElementById('lightbox-img').src = ''; }, 300);
+            },
+
+            updateLightbox: function() {
+                const data = this.currentImages[this.lightboxIndex];
+                if(!data) return;
+                
+                const img = document.getElementById('lightbox-img');
+                const caption = document.getElementById('lightbox-caption');
+                
+                // Sauber laden
+                const tempImg = new Image();
+                tempImg.onload = () => { img.src = tempImg.src; };
+                tempImg.src = data.src.split('/').map(encodeURIComponent).join('/');
+                
+                caption.textContent = data.title;
+            },
+
+            nextImage: function() {
+                this.lightboxIndex = (this.lightboxIndex + 1) % this.currentImages.length;
+                this.updateLightbox();
+            },
+
+            prevImage: function() {
+                this.lightboxIndex = (this.lightboxIndex - 1 + this.currentImages.length) % this.currentImages.length;
+                this.updateLightbox();
+            },
+
+            // --- HELPER ---
+            toggleMobileMenu: function() {
+                const menu = document.getElementById('mobile-menu');
+                menu.classList.toggle('translate-x-full');
+            },
+
+            formatTitle: function(pathStr) {
+                const filename = pathStr.split('/').pop().split('.')[0];
+                // Entfernt Nummernklammern wie (1) und Unterstriche
+                return filename.replace(/[\(\)\d_-]/g, ' ').trim();
+            }
+        };
+
+        // Start
+        window.addEventListener('DOMContentLoaded', () => app.init());
+
     </script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>

@@ -1,119 +1,99 @@
 const fs = require('fs');
 const path = require('path');
 
-// Konfiguration
-const IMAGES_DIR = './images';
-const OUTPUT_FILE = './data.js';
-const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+// --- KONFIGURATION ---
+const CONFIG = {
+    imagesDir: './images',
+    outputFile: './data.js',
+    allowedExtensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif']
+};
 
-// Hilfsfunktion: Rekursiv alle Dateien in einem Ordner finden
-function getAllFilesRecursively(dirPath, arrayOfFiles) {
-    let files = [];
+// --- LOGIK ---
+
+function getAllFiles(dirPath, arrayOfFiles = []) {
     try {
-        files = fs.readdirSync(dirPath);
-    } catch (e) {
-        console.warn(`⚠️ Konnte Ordner nicht lesen: ${dirPath}`);
-        return arrayOfFiles || [];
-    }
+        const files = fs.readdirSync(dirPath);
 
-    arrayOfFiles = arrayOfFiles || [];
-
-    files.forEach(function(file) {
-        const fullPath = path.join(dirPath, file);
-        try {
+        files.forEach(file => {
+            const fullPath = path.join(dirPath, file);
             if (fs.statSync(fullPath).isDirectory()) {
-                arrayOfFiles = getAllFilesRecursively(fullPath, arrayOfFiles);
+                getAllFiles(fullPath, arrayOfFiles);
             } else {
                 arrayOfFiles.push(fullPath);
             }
-        } catch (e) {
-            // Datei überspringen bei Fehler
-        }
-    });
-
+        });
+    } catch (e) {
+        // Ordner existiert vielleicht nicht oder keine Rechte, ignorieren
+    }
     return arrayOfFiles;
 }
 
-// Hilfsfunktion: Bilder aus einer Dateiliste filtern
-function filterImages(files) {
-    return files
-        .filter(filePath => {
-            const ext = path.extname(filePath).toLowerCase();
-            return ALLOWED_EXTENSIONS.includes(ext);
-        })
-        .map(filePath => {
-            let relativePath = path.relative(process.cwd(), filePath);
-            return relativePath.replace(/\\/g, '/');
-        });
-}
+function scan() {
+    console.log("📷 Starte Portfolio-Scan...");
 
-console.log('📷 Starte Scan...');
-
-try {
-    if (!fs.existsSync(IMAGES_DIR)) {
-        throw new Error(`Ordner "${IMAGES_DIR}" existiert nicht.`);
+    if (!fs.existsSync(CONFIG.imagesDir)) {
+        console.error(`❌ Fehler: Ordner '${CONFIG.imagesDir}' existiert nicht. Bitte anlegen!`);
+        return;
     }
 
-    let portfolioData = [];
-    let totalImages = 0;
+    const categories = [];
+    const rootImages = [];
 
-    // 1. Root-Bilder im 'images'-Ordner finden (ohne Unterordner zu scannen vorerst)
-    // Wir nutzen readdirSync direkt für Root, um Dateien von Ordnern zu trennen
-    const rootItems = fs.readdirSync(IMAGES_DIR, { withFileTypes: true });
-    
-    // 1a. Root-Bilder sammeln
-    const rootFiles = rootItems
-        .filter(dirent => !dirent.isDirectory())
-        .map(dirent => path.join(IMAGES_DIR, dirent.name));
-    
-    const rootImages = filterImages(rootFiles);
-
-    if (rootImages.length > 0) {
-        console.log(`✅ Root: ${rootImages.length} Bilder gefunden (kommen in "Allgemein").`);
-        portfolioData.push({
-            titel: "Allgemein", // Name für Bilder ohne Unterordner
-            bilder: rootImages
-        });
-        totalImages += rootImages.length;
-    }
-
-    // 1b. Kategorien (Unterordner) finden
-    const categories = rootItems
-        .filter(dirent => dirent.isDirectory())
-        .map(dirent => dirent.name);
-
-    // 2. Durch jede Kategorie iterieren
-    categories.forEach(category => {
-        const categoryPath = path.join(IMAGES_DIR, category);
+    // 1. Root scannen (Dateien direkt in /images)
+    try {
+        const rootItems = fs.readdirSync(CONFIG.imagesDir, { withFileTypes: true });
         
-        // Rekursiv alle Dateien in diesem Unterordner holen
-        const allFiles = getAllFilesRecursively(categoryPath);
-        const images = filterImages(allFiles);
+        // Bilder im Root
+        rootItems.filter(item => !item.isDirectory()).forEach(item => {
+            if (CONFIG.allowedExtensions.includes(path.extname(item.name).toLowerCase())) {
+                const relativePath = path.join(CONFIG.imagesDir, item.name).replace(/\\/g, '/');
+                rootImages.push(relativePath);
+            }
+        });
 
-        if (images.length > 0) {
-            console.log(`✅ Kategorie "${category}": ${images.length} Bilder gefunden.`);
-            totalImages += images.length;
-            portfolioData.push({
-                titel: category,
-                bilder: images
-            });
-        } else {
-            console.log(`ℹ️  Kategorie "${category}" ist leer.`);
-        }
-    });
+        // Unterordner als Kategorien
+        const dirs = rootItems.filter(item => item.isDirectory());
+        
+        dirs.forEach(dir => {
+            const catName = dir.name;
+            const catPath = path.join(CONFIG.imagesDir, catName);
+            
+            // Rekursiv alle Bilder in diesem Ordner holen
+            const allFiles = getAllFiles(catPath);
+            const images = allFiles
+                .filter(f => CONFIG.allowedExtensions.includes(path.extname(f).toLowerCase()))
+                .map(f => path.relative(process.cwd(), f).replace(/\\/g, '/')); // Relativ zum Root
 
-    // 3. JS Datei schreiben
-    const fileContent = `// AUTOMATISCH GENERIERT DURCH 'npm run scan'
-// MANUELLE ÄNDERUNGEN WERDEN ÜBERSCHRIEBEN
-// Generiert am: ${new Date().toLocaleString()}
+            if (images.length > 0) {
+                categories.push({
+                    id: catName.toLowerCase().replace(/[^a-z0-9]/g, ''),
+                    label: catName,
+                    images: images
+                });
+            }
+        });
 
-window.portfolioData = ${JSON.stringify(portfolioData, null, 4)};
-`;
+    } catch (e) {
+        console.error("Fehler beim Scannen:", e);
+    }
 
-    fs.writeFileSync(OUTPUT_FILE, fileContent);
-    console.log(`\n🎉 Fertig! Insgesamt ${totalImages} Bilder verarbeitet.`);
-    console.log(`Datei gespeichert unter: ${OUTPUT_FILE}`);
+    // Root Bilder hinzufügen falls vorhanden
+    if (rootImages.length > 0) {
+        categories.unshift({
+            id: 'general',
+            label: 'Allgemein',
+            images: rootImages
+        });
+    }
 
-} catch (err) {
-    console.error('❌ Ein Fehler ist aufgetreten:', err.message);
+    // JS Datei schreiben
+    const jsContent = `// AUTOMATISCH GENERIERT. NICHT EDITIEREN.
+window.portfolioData = ${JSON.stringify(categories, null, 2)};`;
+
+    fs.writeFileSync(CONFIG.outputFile, jsContent);
+
+    console.log(`✅ Scan fertig! ${categories.length} Kategorien gefunden.`);
+    console.log(`💾 Datei gespeichert: ${CONFIG.outputFile}`);
 }
+
+scan();

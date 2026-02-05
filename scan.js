@@ -5,16 +5,21 @@ const path = require('path');
 const CONFIG = {
     imagesDir: './images',
     outputFile: './data.js',
-    allowedExtensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif']
+    allowedExtensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'],
+    // Dateien, die nicht in der Galerie erscheinen sollen:
+    excludedFiles: ['port.jpg'] 
 };
 
 // --- LOGIK ---
 
 function getAllFiles(dirPath, arrayOfFiles = []) {
     try {
-        const files = fs.readdirSync(dirPath);
+        const files = fs.readdirSync(dirPath).sort(); // Alphabetisch sortieren
 
         files.forEach(file => {
+            // Exclude Filter prüfen
+            if (CONFIG.excludedFiles.includes(file)) return;
+
             const fullPath = path.join(dirPath, file);
             if (fs.statSync(fullPath).isDirectory()) {
                 getAllFiles(fullPath, arrayOfFiles);
@@ -41,17 +46,22 @@ function scan() {
 
     // 1. Root scannen (Dateien direkt in /images)
     try {
-        const rootItems = fs.readdirSync(CONFIG.imagesDir, { withFileTypes: true });
+        // Root Items holen und alphabetisch sortieren
+        const rootItems = fs.readdirSync(CONFIG.imagesDir, { withFileTypes: true })
+            .sort((a, b) => a.name.localeCompare(b.name));
         
         // Bilder im Root
         rootItems.filter(item => !item.isDirectory()).forEach(item => {
-            if (CONFIG.allowedExtensions.includes(path.extname(item.name).toLowerCase())) {
+            const isAllowed = CONFIG.allowedExtensions.includes(path.extname(item.name).toLowerCase());
+            const isExcluded = CONFIG.excludedFiles.includes(item.name);
+
+            if (isAllowed && !isExcluded) {
                 const relativePath = path.join(CONFIG.imagesDir, item.name).replace(/\\/g, '/');
                 rootImages.push(relativePath);
             }
         });
 
-        // Unterordner als Kategorien
+        // Unterordner als Kategorien (ebenfalls sortiert)
         const dirs = rootItems.filter(item => item.isDirectory());
         
         dirs.forEach(dir => {
@@ -77,7 +87,7 @@ function scan() {
         console.error("Fehler beim Scannen:", e);
     }
 
-    // Root Bilder hinzufügen falls vorhanden
+    // Root Bilder hinzufügen falls vorhanden (General Category)
     if (rootImages.length > 0) {
         categories.unshift({
             id: 'general',

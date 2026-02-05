@@ -210,6 +210,7 @@
             lightboxIndex: 0,
             observer: null,
             currentCategory: 'home',
+            isLoading: false,
 
             init: function() {
                 // Check if data loaded
@@ -268,6 +269,7 @@
             filter: function(catId) {
                 this.currentCategory = catId;
                 this.renderedCount = 0;
+                this.isLoading = false; // Reset lock
                 document.getElementById('gallery-container').innerHTML = ''; 
                 
                 window.scrollTo({top: 0, behavior: 'smooth'});
@@ -301,6 +303,9 @@
             },
 
             loadMore: function() {
+                // Prevent duplicate calls while processing (Fix for duplicate images)
+                if (this.isLoading) return;
+
                 const container = document.getElementById('gallery-container');
                 const trigger = document.getElementById('loading-trigger');
                 
@@ -309,6 +314,7 @@
                     return;
                 }
 
+                this.isLoading = true;
                 trigger.classList.add('opacity-100');
 
                 // Lade alles auf einmal wenn es "home" ist (sind nur 25), oder in Batches wenn es eine Kategorie ist
@@ -346,6 +352,7 @@
                     container.appendChild(fragment);
                     this.renderedCount += nextBatch.length;
                     trigger.classList.remove('opacity-100');
+                    this.isLoading = false; // Release lock
                 }, 50);
             },
 

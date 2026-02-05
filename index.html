@@ -199,10 +199,21 @@
 
         // Utilities
         function generateTitle(src) {
-            if (src.includes('?')) return ''; 
-            const filename = src.split('/').pop().split('.')[0];
-            let title = filename.replace(/[-_]/g, ' ');
-            return title.replace(/\w\S*/g, (w) => (w.replace(/^\w/, (c) => c.toUpperCase())));
+            // Decodes URL encoded string back to normal text for title display
+            try {
+                const decoded = decodeURIComponent(src);
+                if (decoded.includes('?')) return ''; 
+                const filename = decoded.split('/').pop().split('.')[0];
+                let title = filename.replace(/[-_]/g, ' ');
+                return title.replace(/\w\S*/g, (w) => (w.replace(/^\w/, (c) => c.toUpperCase())));
+            } catch(e) {
+                return '';
+            }
+        }
+
+        // Neue Funktion zum sicheren Kodieren von Pfaden mit Sonderzeichen
+        function encodeFilePath(path) {
+            return path.split('/').map(part => encodeURIComponent(part)).join('/');
         }
 
         function getSafeId(str) {
@@ -214,7 +225,7 @@
             container.innerHTML = `
                 <div class="w-full h-48 bg-gray-50 border border-red-200 flex flex-col items-center justify-center text-center p-4">
                     <p class="text-red-900 font-medium text-sm mb-1">Image Error</p>
-                    <p class="text-xs text-gray-400 font-mono">${src}</p>
+                    <p class="text-xs text-gray-400 font-mono break-all">${src}</p>
                 </div>
             `;
             container.removeAttribute('onclick'); 
@@ -242,7 +253,7 @@
 
                 item.bilder.forEach(src => {
                     allImages.push({
-                        src: src,
+                        src: src, // Raw path from data.js
                         category: catId,
                         title: generateTitle(src)
                     });
@@ -390,9 +401,12 @@
                     
                     const safeSrc = img.src.replace(/'/g, "\\'");
                     
+                    // WICHTIG: Pfad kodieren für korrekte Darstellung (Leerzeichen, &, Klammern)
+                    const encodedSrc = encodeFilePath(img.src);
+
                     div.innerHTML = `
                         <img 
-                            src="${img.src}" 
+                            src="${encodedSrc}" 
                             alt="${img.title}" 
                             class="w-full h-auto object-cover filter brightness-95 hover:brightness-100 transition-opacity duration-300" 
                             loading="lazy" 
@@ -438,7 +452,10 @@
             const photo = currentFilteredImages[lightboxIndex];
             if(!photo) return;
             const img = document.getElementById('lightbox-img');
-            img.src = photo.src;
+            
+            // Auch hier Pfad kodieren
+            img.src = encodeFilePath(photo.src);
+            
             img.onerror = () => { img.src = ''; };
             document.getElementById('lightbox-caption').textContent = photo.title || '';
         }

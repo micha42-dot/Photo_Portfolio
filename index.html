@@ -56,6 +56,18 @@
         .dropdown-active .dropdown-arrow {
             transform: rotate(180deg);
         }
+        
+        /* Hardware Acceleration & Rendering Fixes für Firefox */
+        .gallery-item {
+            transform: translateZ(0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            will-change: transform, opacity;
+        }
+        
+        /* Smooth Image Loading */
+        .img-loading { opacity: 0; }
+        .img-loaded { opacity: 1; }
     </style>
 <script type="importmap">
 {
@@ -134,6 +146,10 @@
         <!-- VIEW: GALLERY -->
         <div id="view-gallery" class="w-full">
             <div id="gallery-grid" class="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4"></div>
+            
+            <!-- Sentinel for Infinite Scroll (Unsichtbares Element am Ende) -->
+            <div id="scroll-sentinel" class="w-full h-20 opacity-0 pointer-events-none"></div>
+
             <!-- Fallback -->
             <div id="no-results" class="hidden flex justify-center items-center h-64 text-gray-400 font-light">
                 Keine Bilder in dieser Kategorie gefunden.
@@ -189,17 +205,23 @@
         // ==========================================
         // APP LOGIC
         // ==========================================
+        
+        // KONFIGURATION PERFORMANCE
+        // Reduziert auf 12 um Freezes zu verhindern
+        const BATCH_SIZE = 12; 
+        let renderedCount = 0;
+
         let allImages = []; 
         let currentFilteredImages = [];
         let lightboxIndex = 0;
         let isMobileMenuOpen = false;
         let categories = []; 
+        let observer; // Für Infinite Scroll
 
         document.getElementById('year').textContent = new Date().getFullYear();
 
         // Utilities
         function generateTitle(src) {
-            // Decodes URL encoded string back to normal text for title display
             try {
                 const decoded = decodeURIComponent(src);
                 if (decoded.includes('?')) return ''; 
@@ -211,18 +233,11 @@
             }
         }
 
-        // VERBESSERTE Encode Funktion:
-        // Maskiert auch Klammern () explizit mit %28 und %29, da GitHub/Jekyll hier manchmal strikt ist.
         function encodeFilePath(path) {
-            // 1. Backslashes zu Slashes korrigieren
             let normalized = path.replace(/\\/g, '/');
-            
             return normalized.split('/').map(part => {
-                // Standard URL Encoding
                 let encoded = encodeURIComponent(part);
-                // WICHTIG: Klammern manuell maskieren für maximale Kompatibilität
                 encoded = encoded.replace(/\(/g, '%28').replace(/\)/g, '%29');
-                // Auch Hochkommas sicherheitshalber
                 encoded = encoded.replace(/'/g, '%27');
                 return encoded;
             }).join('/');
@@ -234,8 +249,6 @@
 
         function handleImgError(img, rawSrc) {
             const container = img.parentElement;
-            
-            // Fehlermeldung mit Hinweis zur Fehlersuche
             const isJpg = rawSrc.toLowerCase().endsWith('.jpg');
             let hint = "Prüfe den Pfad.";
             if(isJpg) hint = "Prüfe Groß-/Kleinschreibung (.jpg vs .JPG?)";
@@ -262,7 +275,6 @@
             allImages = [];
             categories = [];
             
-            // "Alle" Kategorie explizit hinzufügen für die Liste
             categories.push({ label: 'Alle', id: 'all' });
 
             data.forEach(item => {
@@ -272,34 +284,128 @@
 
                 item.bilder.forEach(src => {
                     allImages.push({
-                        src: src, // Raw path from data.js
+                        src: src,
                         category: catId,
                         title: generateTitle(src)
                     });
                 });
             });
 
+            // Intersection Observer für Infinite Scroll einrichten
+            const sentinel = document.getElementById('scroll-sentinel');
+            observer = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting) {
+                    renderBatch();
+                }
+            }, { 
+                rootMargin: '200px' // Etwas konservativeres Laden
+            });
+            observer.observe(sentinel);
+
             renderNavigation();
             
-            // Event Listener für Hash-Änderungen (Routing)
             window.addEventListener('hashchange', handleRouting);
-            
-            // Initial Router Call
             handleRouting();
             
-            // Global Click Listener für Dropdown Close
             document.addEventListener('click', handleClickOutside);
         }
         
-        // DROPDOWN LOGIC
+        // --- RENDERING LOGIC (Optimized) ---
+
+        function handleRouting() {
+            let hash = window.location.hash.substring(1);
+            if (!hash) hash = 'all';
+            const isValidCat = categories.some(c => c.id === hash);
+            const categoryToLoad = isValidCat ? hash : 'all';
+            
+            // Scroll nach oben bei Kategoriewechsel
+            window.scrollTo({ top: 0, behavior: 'auto' });
+            
+            renderGallery(categoryToLoad);
+        }
+
+        function renderGallery(categoryId) {
+            currentFilteredImages = (categoryId === 'all') 
+                ? allImages 
+                : allImages.filter(img => img.category === categoryId);
+            
+            const grid = document.getElementById('gallery-grid');
+            const noResults = document.getElementById('no-results');
+            
+            // Grid komplett leeren und Zähler zurücksetzen
+            grid.innerHTML = '';
+            renderedCount = 0;
+            
+            if (currentFilteredImages.length === 0) {
+                noResults.classList.remove('hidden');
+            } else {
+                noResults.classList.add('hidden');
+                // Ersten Batch sofort rendern
+                renderBatch();
+            }
+            
+            // Active State im Menü setzen
+            document.querySelectorAll('.dropdown-content a').forEach(a => {
+                if(a.dataset.cat === categoryId) {
+                    a.classList.add('text-black', 'bg-gray-50');
+                    a.classList.remove('text-gray-500');
+                } else {
+                    a.classList.remove('text-black', 'bg-gray-50');
+                    a.classList.add('text-gray-500');
+                }
+            });
+        }
+
+        // Neue Funktion: Rendert Bilder in kleinen Paketen
+        function renderBatch() {
+            // Abbruch, wenn alle Bilder gerendert sind
+            if (renderedCount >= currentFilteredImages.length) return;
+
+            const grid = document.getElementById('gallery-grid');
+            const batch = currentFilteredImages.slice(renderedCount, renderedCount + BATCH_SIZE);
+            
+            // DocumentFragment verwenden: Verhindert mehrfaches Neu-Berechnen des Layouts
+            const fragment = document.createDocumentFragment();
+
+            batch.forEach((img, i) => {
+                // Wichtig: Der Index für die Lightbox muss global sein, nicht relativ zum Batch
+                const globalIndex = renderedCount + i;
+                
+                const div = document.createElement('div');
+                div.className = 'gallery-item break-inside-avoid relative group cursor-pointer overflow-hidden mb-4';
+                div.onclick = () => openLightbox(globalIndex);
+                
+                const safeSrc = img.src.replace(/'/g, "\\'");
+                const encodedSrc = encodeFilePath(img.src);
+
+                div.innerHTML = `
+                    <img 
+                        src="${encodedSrc}" 
+                        alt="${img.title}" 
+                        class="w-full h-auto object-cover filter brightness-95 hover:brightness-100 transition-opacity duration-300 img-loading" 
+                        loading="lazy" 
+                        decoding="async"
+                        onload="this.classList.add('img-loaded')"
+                        onerror="handleImgError(this, '${safeSrc}')"
+                    >
+                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 pointer-events-none transition-colors duration-300"></div>
+                `;
+                fragment.appendChild(div);
+            });
+
+            grid.appendChild(fragment);
+            renderedCount += batch.length;
+        }
+
+        // --- NAVIGATION & UI (Unverändert) ---
+
         function toggleDropdown(event) {
-            event.stopPropagation(); // Verhindert, dass das Event zum Document bubbled
+            event.stopPropagation();
             const menu = document.getElementById('dropdown-menu');
             const btn = document.getElementById('dropdown-btn');
             
             menu.classList.toggle('show');
             
-            // Rotate Arrow (optional Visual Feedback)
             if(menu.classList.contains('show')) {
                 btn.parentElement.classList.add('dropdown-active');
                 btn.classList.add('text-black');
@@ -320,7 +426,6 @@
         }
         
         function handleClickOutside(event) {
-            // Wenn der Klick nicht innerhalb des Dropdown Buttons oder Menüs war -> Schließen
             const menu = document.getElementById('dropdown-menu');
             const btn = document.getElementById('dropdown-btn');
             
@@ -340,19 +445,16 @@
 
             // Desktop Dropdown
             categories.forEach(cat => {
-                // Dropdown Item
                 const link = document.createElement('a');
                 link.href = `#${cat.id}`;
                 link.textContent = cat.label;
                 link.className = 'w-full text-left py-2 px-6 text-xs font-medium tracking-[0.15em] uppercase text-gray-500 hover:text-black hover:bg-gray-50 transition-colors nav-link block';
                 link.dataset.cat = cat.id;
-                // WICHTIG: Wenn man im Dropdown klickt, soll es sich schließen
                 link.onclick = () => closeDropdown(); 
                 dropContainer.appendChild(link);
             });
 
-            // Mobile Menu (Flat list is better UX for mobile)
-            // 1. Home
+            // Mobile Menu
             const mobHome = document.createElement('a');
             mobHome.href = "#all";
             mobHome.textContent = "HOME / ALLE";
@@ -360,7 +462,6 @@
             mobHome.className = "text-xl font-light tracking-widest uppercase text-black";
             mobContainer.appendChild(mobHome);
 
-            // 2. Categories
             categories.forEach(cat => {
                 if(cat.id === 'all') return;
                 const link = document.createElement('a');
@@ -371,7 +472,6 @@
                 mobContainer.appendChild(link);
             });
 
-            // 3. Static Links
             const mobJournalism = document.createElement('a');
             mobJournalism.href = "https://michaelfoertsch.de";
             mobJournalism.target = "_blank";
@@ -386,73 +486,8 @@
             mobContainer.appendChild(mobInfo);
         }
 
-        // The "Router" for Gallery Filtering
-        function handleRouting() {
-            // Hash auslesen (z.B. "#urban" -> "urban")
-            let hash = window.location.hash.substring(1);
-            if (!hash) hash = 'all';
+        // --- LIGHTBOX ---
 
-            // Prüfen ob Hash eine gültige Kategorie ist
-            const isValidCat = categories.some(c => c.id === hash);
-            const categoryToLoad = isValidCat ? hash : 'all';
-            
-            renderGallery(categoryToLoad);
-        }
-
-        function renderGallery(categoryId) {
-            currentFilteredImages = (categoryId === 'all') 
-                ? allImages 
-                : allImages.filter(img => img.category === categoryId);
-            
-            const grid = document.getElementById('gallery-grid');
-            const noResults = document.getElementById('no-results');
-            
-            grid.innerHTML = '';
-            
-            if (currentFilteredImages.length === 0) {
-                noResults.classList.remove('hidden');
-            } else {
-                noResults.classList.add('hidden');
-                currentFilteredImages.forEach((img, index) => {
-                    const div = document.createElement('div');
-                    div.className = 'break-inside-avoid relative group cursor-pointer overflow-hidden mb-4';
-                    div.onclick = () => openLightbox(index);
-                    
-                    const safeSrc = img.src.replace(/'/g, "\\'");
-                    
-                    // WICHTIG: Pfad kodieren für korrekte Darstellung (Leerzeichen, &, Klammern)
-                    const encodedSrc = encodeFilePath(img.src);
-
-                    div.innerHTML = `
-                        <img 
-                            src="${encodedSrc}" 
-                            alt="${img.title}" 
-                            class="w-full h-auto object-cover filter brightness-95 hover:brightness-100 transition-opacity duration-300" 
-                            loading="lazy" 
-                            onerror="handleImgError(this, '${safeSrc}')"
-                        >
-                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 pointer-events-none transition-colors duration-300"></div>
-                    `;
-                    grid.appendChild(div);
-                });
-            }
-            
-            // Highlight active dropdown item
-            document.querySelectorAll('.dropdown-content a').forEach(a => {
-                if(a.dataset.cat === categoryId) {
-                    a.classList.add('text-black', 'bg-gray-50');
-                    a.classList.remove('text-gray-500');
-                } else {
-                    a.classList.remove('text-black', 'bg-gray-50');
-                    a.classList.add('text-gray-500');
-                }
-            });
-
-            // Scroll to top only if not already there (UX improvement)
-            if(window.scrollY > 200) window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        // Lightbox Functions
         function openLightbox(index) {
             lightboxIndex = index;
             updateLightboxContent();
@@ -472,7 +507,6 @@
             if(!photo) return;
             const img = document.getElementById('lightbox-img');
             
-            // Auch hier Pfad kodieren
             img.src = encodeFilePath(photo.src);
             
             img.onerror = () => { img.src = ''; };

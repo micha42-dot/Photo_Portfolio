@@ -94,11 +94,11 @@ window.portfolioData = [
     {
         titel: "Stadt & Architektur",
         bilder: [
-            "images/Stadtarchitektur/(1).jpg",
-            "images/Stadtarchitektur/(2).jpg",
-            "images/Stadtarchitektur/(3).jpg",
-            "images/Stadtarchitektur/(4).jpg",
-            "images/Stadtarchitektur/(5).jpg",
+            "images/Stadt & Architektur/(1).jpg",
+            "images/Stadt & Architektur/(2).jpg",
+            "images/Stadt & Architektur/(3).jpg",
+            "images/Stadt & Architektur/(4).jpg",
+            "images/Stadt & Architektur/(5).jpg",
             "images/Stadt & Architektur/(6).jpg",
             "images/Stadt & Architektur/(7).jpg",
             "images/Stadt & Architektur/(8).jpg",

@@ -28,73 +28,24 @@
         }
     </script>
     <style>
-        :root {
-            --gap: 24px;
-        }
-
-        .gallery-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            grid-auto-rows: 1px;
-            
-            /* Horizontaler Abstand via Grid */
-            column-gap: var(--gap);
-            
-            /* Vertikaler Abstand via JS-Span Berechnung (siehe unten), daher hier 0 */
-            row-gap: 0; 
-            
-            width: 100%;
-            padding-bottom: 80px;
-            grid-auto-flow: dense; 
-        }
-
-        @media (max-width: 640px) {
-            .gallery-grid {
-                display: flex;
-                flex-direction: column;
-                gap: 32px;
-            }
+        /* Fade In Animation für Bilder */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .img-item {
-            position: relative;
-            background-color: transparent; /* Transparent, damit der Gap-Bereich weiß bleibt */
-            width: 100%;
-            cursor: pointer;
-            
-            /* KEIN margin-bottom mehr! Der Abstand wird in den Grid-Span eingerechnet. */
-            margin: 0; 
-            
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-            
-            overflow: hidden; /* Sicherstellen, dass nichts rausragt */
+            animation: fadeIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            opacity: 0; /* Startzustand */
+            break-inside: avoid; /* Wichtig für Spalten */
+            margin-bottom: 0; /* Gaps regelt das Flex-Parent */
         }
 
-        .img-item.loaded {
+        .img-item:hover .overlay {
             opacity: 1;
-            transform: translateY(0);
         }
 
-        @media (min-width: 641px) {
-            .col-span-2 {
-                grid-column: span 2;
-            }
-        }
-
-        .gallery-img {
-            display: block;
-            width: 100%;
-            height: auto;
-            will-change: transform;
-            transition: transform 0.7s ease;
-            
-            /* Kleiner Trick: Block-Display verhindert extra Whitespace unter inline-Bilder */
-            vertical-align: bottom; 
-        }
-
-        .img-item:hover .gallery-img {
+        .img-item:hover img {
             transform: scale(1.02);
         }
 
@@ -167,7 +118,7 @@
     </div>
 
     <!-- MAIN GALLERY -->
-    <main class="flex-grow pt-24 px-4 md:px-8 w-full max-w-[1800px] mx-auto">
+    <main class="flex-grow pt-24 px-4 md:px-8 w-full max-w-[1800px] mx-auto min-h-screen">
         
         <div id="no-data-warning" class="hidden w-full max-w-2xl mx-auto text-center py-12 px-6 border border-yellow-200 bg-yellow-50 rounded-lg">
             <h3 class="text-yellow-800 font-bold mb-2">Galerie wird geladen...</h3>
@@ -179,12 +130,13 @@
             </div>
         </div>
 
-        <div id="gallery-container" class="gallery-grid">
-            <!-- Bilder werden hier eingefügt -->
+        <!-- CONTAINER FÜR DIE SPALTEN -->
+        <div id="masonry-container" class="w-full">
+            <!-- Wird per JS befüllt mit Spalten -->
         </div>
         
         <!-- Loading Sentinel -->
-        <div id="loading-trigger" class="h-24 w-full flex items-center justify-center mt-4 opacity-0 transition-opacity">
+        <div id="loading-trigger" class="h-32 w-full flex items-center justify-center mt-12 opacity-0 transition-opacity">
             <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce mx-1"></div>
             <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce mx-1 delay-100"></div>
             <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce mx-1 delay-200"></div>
@@ -232,16 +184,18 @@
         const app = {
             data: [],
             currentImages: [],    
-            processedImages: [],  
-            renderedCount: 0,     
+            
+            // Layout State
+            columnCount: 3,
+            columns: [], // Array von Arrays mit Bildern für die Spalten
             
             lightboxIndex: 0,
-            observer: null,
-            resizeObserver: null,
+            
+            // Batch Loading
+            renderedCount: 0,
+            batchSize: 12,
             isLoading: false,
-
-            // Gap Size passend zum CSS (:root var(--gap))
-            gapSize: 24, 
+            observer: null,
 
             init: function() {
                 if(!window.portfolioData || window.portfolioData.length === 0) {
@@ -255,12 +209,13 @@
 
                 this.setupNavigation();
                 
-                // Wir beobachten Container-Resizes für dynamische Anpassungen
-                this.resizeObserver = new ResizeObserver(entries => {
-                    for (let entry of entries) {
-                        this.resizeGridItem(entry.target);
-                    }
+                // Resize Handler für Spaltenanzahl
+                window.addEventListener('resize', () => {
+                    this.handleResize();
                 });
+
+                // Initiale Spaltenberechnung
+                this.updateColumnCount();
 
                 this.filter('home'); 
                 
@@ -294,12 +249,38 @@
                 return btn;
             },
 
+            updateColumnCount: function() {
+                const w = window.innerWidth;
+                let newCount = 3;
+                if (w < 640) newCount = 1;
+                else if (w < 1024) newCount = 2;
+
+                if (newCount !== this.columnCount) {
+                    this.columnCount = newCount;
+                    // Wenn sich Spalten ändern, müssen wir alles neu rendern
+                    if (this.currentImages.length > 0) {
+                        this.renderedCount = 0; // Reset
+                        this.rebuildLayout();
+                    }
+                }
+            },
+
+            handleResize: function() {
+                // Debounce simple
+                if (this.resizeTimeout) clearTimeout(this.resizeTimeout);
+                this.resizeTimeout = setTimeout(() => {
+                    this.updateColumnCount();
+                }, 100);
+            },
+
             filter: function(catId) {
+                // Reset State
                 this.renderedCount = 0;
-                this.processedImages = [];
+                this.columns = Array.from({ length: this.columnCount }, () => []);
                 this.isLoading = false;
                 
-                const container = document.getElementById('gallery-container');
+                // Clear DOM
+                const container = document.getElementById('masonry-container');
                 container.innerHTML = ''; 
                 window.scrollTo({top: 0, behavior: 'smooth'});
 
@@ -307,6 +288,7 @@
                     let allImages = this.data.flatMap(cat => 
                         cat.images.map(src => ({ src: src, title: this.formatTitle(src) }))
                     );
+                    // Shuffle
                     for (let i = allImages.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [allImages[i], allImages[j]] = [allImages[j], allImages[i]];
@@ -317,19 +299,38 @@
                     this.currentImages = category ? category.images.map(src => ({ src: src, title: this.formatTitle(src) })) : [];
                 }
 
+                this.rebuildLayout(); // Struktur aufbauen
                 this.setupObserver();
-                this.loadMore();
+                this.loadMore(); // Erste Bilder laden
+            },
+
+            rebuildLayout: function() {
+                const container = document.getElementById('masonry-container');
+                container.innerHTML = '';
+                
+                // Flex Container
+                container.className = "flex w-full gap-6 md:gap-8 items-start"; // Hier ist der horizontale Abstand
+
+                // Spalten DIVs erstellen
+                this.columnElements = [];
+                for(let i=0; i < this.columnCount; i++) {
+                    const col = document.createElement('div');
+                    // Jede Spalte ist flex-col mit gap für den vertikalen Abstand
+                    // flex-1 sorgt dafür, dass alle Spalten gleich breit sind
+                    col.className = "flex flex-col flex-1 gap-6 md:gap-8"; // Hier ist der vertikale Abstand (gap-y)
+                    container.appendChild(col);
+                    this.columnElements.push(col);
+                }
             },
 
             loadMore: function() {
-                if(this.isLoading) return;
+                if (this.isLoading) return;
                 
                 const trigger = document.getElementById('loading-trigger');
                 trigger.classList.add('opacity-100');
                 this.isLoading = true;
 
-                const batchSize = 15;
-                const batch = this.currentImages.slice(this.renderedCount, this.renderedCount + batchSize);
+                const batch = this.currentImages.slice(this.renderedCount, this.renderedCount + this.batchSize);
 
                 if (batch.length === 0) {
                     trigger.classList.remove('opacity-100');
@@ -337,100 +338,50 @@
                     return;
                 }
 
-                const container = document.getElementById('gallery-container');
+                // Bilder verteilen (Round Robin für einfache Verteilung)
+                // Wir nutzen hier einfach (index % columns), das erhält die Chronologie am besten.
+                batch.forEach((imgData, index) => {
+                    const globalIndex = this.renderedCount + index;
+                    const columnIndex = globalIndex % this.columnCount;
+                    const targetCol = this.columnElements[columnIndex];
 
-                batch.forEach((imgData) => {
                     const itemDiv = document.createElement('div');
-                    itemDiv.className = 'img-item group';
+                    itemDiv.className = 'img-item relative group w-full bg-gray-50 cursor-pointer overflow-hidden';
                     
-                    const img = new Image();
-                    img.className = 'gallery-img';
+                    // Klick Event
+                    itemDiv.onclick = () => this.openLightbox(globalIndex);
+
+                    // Bild
+                    const img = document.createElement('img');
+                    img.src = imgData.src;
                     img.alt = imgData.title;
-                    
-                    img.onload = () => {
-                        const ratio = img.naturalWidth / img.naturalHeight;
-                        
-                        // === BEREINIGTE LOGIK ===
-                        // Nur echte Panoramas bekommen Double-Width.
-                        // Das verhindert "messy" Layouts bei fast-quadratischen Bildern.
-                        if (ratio > 1.6) {
-                            itemDiv.classList.add('col-span-2');
-                        } 
-                        // Ganz selten bei "Breitbild", aber nicht übertreiben
-                        else if (ratio > 1.25 && Math.random() > 0.90) {
-                             itemDiv.classList.add('col-span-2');
-                        }
+                    img.className = "block w-full h-auto transition-transform duration-700 ease-out will-change-transform";
+                    img.loading = "lazy"; // Native Lazy Loading
 
-                        itemDiv.dataset.src = imgData.src;
-                        itemDiv.dataset.title = imgData.title;
-
-                        // Layout berechnen
-                        this.resizeGridItem(itemDiv);
-                        
-                        itemDiv.classList.add('loaded');
-                        this.resizeObserver.observe(itemDiv);
-                    };
-
-                    img.onerror = () => { itemDiv.remove(); };
-                    
-                    itemDiv.onclick = () => {
-                        this.updateProcessedImagesFromDOM();
-                        const idx = this.processedImages.findIndex(p => p.src === imgData.src);
-                        this.openLightbox(idx);
-                    };
-
-                    img.src = imgData.src; 
-                    itemDiv.appendChild(img);
-                    
+                    // Overlay
                     const overlay = document.createElement('div');
-                    overlay.className = "absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none";
-                    itemDiv.appendChild(overlay);
+                    overlay.className = "overlay absolute inset-0 bg-black/10 opacity-0 transition-opacity duration-300 pointer-events-none";
 
-                    container.appendChild(itemDiv);
+                    itemDiv.appendChild(img);
+                    itemDiv.appendChild(overlay);
+                    targetCol.appendChild(itemDiv);
                 });
 
                 this.renderedCount += batch.length;
-                
+
+                // Kurze Verzögerung für UX (Lade-Icon)
                 setTimeout(() => {
                     this.isLoading = false;
                     if (this.renderedCount >= this.currentImages.length) {
                         trigger.classList.remove('opacity-100');
                         if(this.observer) this.observer.disconnect();
                     }
-                }, 100);
-            },
-
-            // === GAP FIX ===
-            // Wir berechnen den Abstand (Gap) mit in den Span ein.
-            // Der Container wird so hoch wie das Bild + Gap.
-            // Das Bild liegt oben, der untere Teil bleibt leer -> Perfekter Abstand.
-            resizeGridItem: function(item) {
-                const img = item.querySelector('img');
-                if(!img) return;
-
-                const rowHeight = 1; // 1px
-                const rowGap = 0;    // 0px
-                
-                // Bildhöhe im DOM
-                const contentHeight = img.getBoundingClientRect().height;
-                
-                // Formel: (Bildhöhe + Gewünschter_Abstand) / 1px
-                const rowSpan = Math.ceil((contentHeight + this.gapSize) / (rowHeight + rowGap));
-                
-                item.style.gridRowEnd = "span " + rowSpan;
-            },
-
-            updateProcessedImagesFromDOM: function() {
-                const items = document.querySelectorAll('.img-item.loaded');
-                this.processedImages = Array.from(items).map(item => ({
-                    src: item.dataset.src,
-                    title: item.dataset.title
-                }));
+                }, 50);
             },
 
             setupObserver: function() {
                 if(this.observer) this.observer.disconnect();
-                const options = { root: null, rootMargin: '600px', threshold: 0.01 };
+                const options = { root: null, rootMargin: '400px', threshold: 0.01 };
                 this.observer = new IntersectionObserver((entries) => {
                     if(entries[0].isIntersecting) {
                         this.loadMore();
@@ -442,7 +393,7 @@
             },
 
             openLightbox: function(index) {
-                if (index < 0 || index >= this.processedImages.length) return;
+                if (index < 0 || index >= this.currentImages.length) return;
                 this.lightboxIndex = index;
                 this.updateLightbox();
                 const lb = document.getElementById('lightbox');
@@ -458,25 +409,27 @@
             },
 
             updateLightbox: function() {
-                const data = this.processedImages[this.lightboxIndex];
+                const data = this.currentImages[this.lightboxIndex];
                 if(!data) return;
                 
                 const img = document.getElementById('lightbox-img');
                 const caption = document.getElementById('lightbox-caption');
-                const safeSrc = data.src.split('/').map(s => encodeURIComponent(s)).join('/');
+                
+                // Preload für smoothen Übergang
                 const tempImg = new Image();
+                tempImg.src = data.src;
                 tempImg.onload = () => { img.src = tempImg.src; };
-                tempImg.src = safeSrc;
+                
                 caption.textContent = data.title;
             },
 
             nextImage: function() {
-                this.lightboxIndex = (this.lightboxIndex + 1) % this.processedImages.length;
+                this.lightboxIndex = (this.lightboxIndex + 1) % this.currentImages.length;
                 this.updateLightbox();
             },
 
             prevImage: function() {
-                this.lightboxIndex = (this.lightboxIndex - 1 + this.processedImages.length) % this.processedImages.length;
+                this.lightboxIndex = (this.lightboxIndex - 1 + this.currentImages.length) % this.currentImages.length;
                 this.updateLightbox();
             },
 

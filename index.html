@@ -301,14 +301,17 @@
                 window.scrollTo({top: 0, behavior: 'smooth'});
 
                 if (catId === 'home') {
+                    // Sammle ALLE Bilder für die Startseite
                     const allImages = this.data.flatMap(cat => 
                         cat.images.map(src => ({ src: src, title: this.formatTitle(src) }))
                     );
+                    // Mische alle Bilder
                     for (let i = allImages.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [allImages[i], allImages[j]] = [allImages[j], allImages[i]];
                     }
-                    this.currentImages = allImages.slice(0, 25);
+                    // WICHTIG: Kein Slice mehr auf 25. Wir laden alle, aber stückweise.
+                    this.currentImages = allImages;
                 } else {
                     const category = this.data.find(c => c.id === catId);
                     if(category) {
@@ -334,8 +337,16 @@
                 this.isLoading = true;
                 trigger.classList.add('opacity-100');
 
-                const batchCount = (this.currentCategory === 'home') ? 25 : this.batchSize;
-                const nextBatch = this.currentImages.slice(this.renderedCount, this.renderedCount + batchCount);
+                // DYNAMISCHE BATCH GRÖSSE:
+                // Auf der Startseite laden wir beim ersten Mal sehr viele Bilder (50),
+                // um sicherzustellen, dass ca. 7 Reihen gefüllt sind.
+                // Danach laden wir in normalen 10er Schritten nach.
+                let currentBatchSize = this.batchSize;
+                if (this.currentCategory === 'home' && this.renderedCount === 0) {
+                    currentBatchSize = 50; 
+                }
+
+                const nextBatch = this.currentImages.slice(this.renderedCount, this.renderedCount + currentBatchSize);
                 const fragment = document.createDocumentFragment();
 
                 nextBatch.forEach((imgData, index) => {
@@ -346,7 +357,6 @@
                     div.className = 'img-container group cursor-pointer'; 
                     div.onclick = () => this.openLightbox(globalIndex);
 
-                    // Image Element erstellen
                     const img = new Image();
                     img.src = safeSrc;
                     img.alt = imgData.title;
@@ -354,13 +364,8 @@
                     img.loading = "lazy";
                     img.decoding = "async";
 
-                    // LOGIK FÜR ORIGINAL-FORMAT:
-                    // Wir warten, bis das Bild Metadata hat (Width/Height)
-                    // Dann setzen wir flex-grow entsprechend der Aspect Ratio.
                     img.onload = function() {
                         const ar = this.naturalWidth / this.naturalHeight;
-                        // CSS-Variable für das Layout-Verhalten
-                        // Die Breite ergibt sich aus (Zeilenhöhe * AspectRatio)
                         div.style.flexGrow = ar;
                         div.style.width = `calc(var(--row-height) * ${ar})`; 
                         div.classList.add('visible');
@@ -368,7 +373,6 @@
 
                     div.appendChild(img);
                     
-                    // Hover Overlay
                     const overlay = document.createElement('div');
                     overlay.className = "absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none";
                     div.appendChild(overlay);
@@ -379,15 +383,11 @@
                 container.appendChild(fragment);
                 this.renderedCount += nextBatch.length;
                 
-                // Kurze Pause damit DOM reflow nicht blockiert
                 setTimeout(() => {
                     trigger.classList.remove('opacity-100');
                     this.isLoading = false;
-                    // Trigger observer erneut, falls Sentinel noch sichtbar
-                    // (Falls Zeile noch nicht voll ist)
-                    if (this.observer) {
-                        // Trick: disconnect/reconnect check
-                    }
+                    // Falls der Screen riesig ist und 50 Bilder nicht reichen, um zum Sentinel zu kommen (unwahrscheinlich),
+                    // würde der Observer beim Scrollen feuern.
                 }, 100);
             },
 

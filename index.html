@@ -58,8 +58,8 @@
 
         .img-container {
             height: var(--row-height);
-            /* Standard: Quadratisch, wird via JS überschrieben */
-            width: var(--row-height); 
+            /* Wichtig: Basis-Breite auf auto setzen, JS regelt flex-basis */
+            width: auto; 
             flex-grow: 1;
             position: relative;
             background-color: #f3f4f6;
@@ -79,9 +79,9 @@
             height: 100%;
             width: 100%;
             /* 
-               Da der Container nun exakt das Seitenverhältnis des Bildes hat,
-               bedeutet 'cover' hier effektiv 'kein Crop'. 
-               Es füllt den Container pixelgenau aus.
+               Cover sorgt dafür, dass keine weißen Blitzer entstehen, 
+               wenn Flexbox das Bild um wenige Pixel streckt um die Zeile zu füllen.
+               Da der Container nun via JS exakt berechnet wird, ist der Crop minimalst.
             */
             object-fit: cover; 
             display: block;
@@ -310,8 +310,9 @@
                         const j = Math.floor(Math.random() * (i + 1));
                         [allImages[i], allImages[j]] = [allImages[j], allImages[i]];
                     }
-                    // WICHTIG: Kein Slice mehr auf 25. Wir laden alle, aber stückweise.
-                    this.currentImages = allImages;
+                    // LIMIT: Exakt 35 Bilder für die Startseite (ca. 7-8 Reihen à ~4-5 Bilder)
+                    // Kein Infinite Scroll auf der Startseite erwünscht.
+                    this.currentImages = allImages.slice(0, 35);
                 } else {
                     const category = this.data.find(c => c.id === catId);
                     if(category) {
@@ -337,15 +338,10 @@
                 this.isLoading = true;
                 trigger.classList.add('opacity-100');
 
-                // DYNAMISCHE BATCH GRÖSSE:
-                // Auf der Startseite laden wir beim ersten Mal sehr viele Bilder (50),
-                // um sicherzustellen, dass ca. 7 Reihen gefüllt sind.
-                // Danach laden wir in normalen 10er Schritten nach.
-                let currentBatchSize = this.batchSize;
-                if (this.currentCategory === 'home' && this.renderedCount === 0) {
-                    currentBatchSize = 50; 
-                }
-
+                // Auf der Startseite laden wir sofort alle 35, da die Menge dort fixiert ist.
+                // In Kategorien laden wir Batch-weise (Infinite Scroll).
+                let currentBatchSize = (this.currentCategory === 'home') ? 35 : this.batchSize;
+                
                 const nextBatch = this.currentImages.slice(this.renderedCount, this.renderedCount + currentBatchSize);
                 const fragment = document.createDocumentFragment();
 
@@ -366,8 +362,14 @@
 
                     img.onload = function() {
                         const ar = this.naturalWidth / this.naturalHeight;
+                        
+                        // Das ist der Schlüssel zum verlustfreien Layout:
+                        // Wir sagen Flexbox: "Nimm exakt so viel Platz (Basis), wie das Bild bei gegebener Höhe braucht."
+                        // flex-grow: ar sorgt dann dafür, dass der Restplatz in der Zeile proportional verteilt wird.
                         div.style.flexGrow = ar;
+                        div.style.flexBasis = `calc(var(--row-height) * ${ar})`; 
                         div.style.width = `calc(var(--row-height) * ${ar})`; 
+                        
                         div.classList.add('visible');
                     }
 
@@ -386,8 +388,6 @@
                 setTimeout(() => {
                     trigger.classList.remove('opacity-100');
                     this.isLoading = false;
-                    // Falls der Screen riesig ist und 50 Bilder nicht reichen, um zum Sentinel zu kommen (unwahrscheinlich),
-                    // würde der Observer beim Scrollen feuern.
                 }, 100);
             },
 

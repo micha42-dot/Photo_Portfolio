@@ -33,26 +33,23 @@
             --gap: 12px;
         }
 
-        /* 
-           NEUES LAYOUT SYSTEM
-           Wir nutzen keine Flex-Wraps im Hauptcontainer mehr.
-           Jede Zeile (.gallery-row) ist ein eigener Flex-Container.
-        */
         .gallery-container {
             display: flex;
             flex-direction: column;
             gap: var(--gap);
             width: 100%;
-            overflow: hidden; /* Verhindert horizontalen Scrollbalken bei Rundungsfehlern */
+            overflow: hidden; 
+            padding-bottom: 80px;
         }
 
         .gallery-row {
             display: flex;
             flex-direction: row;
+            /* CRITICAL FIX: Verhindert, dass Rundungsfehler das letzte Bild umbrechen */
+            flex-wrap: nowrap; 
             justify-content: space-between;
             width: 100%;
             gap: var(--gap);
-            /* Höhe wird inline via JS gesetzt */
             opacity: 0;
             transform: translateY(20px);
             animation: fadeUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
@@ -67,8 +64,8 @@
             background-color: #f3f4f6;
             cursor: pointer;
             overflow: hidden;
-            /* Flex-Werte verhindern das Kollabieren */
-            flex-shrink: 0; 
+            flex-shrink: 1; /* Erlaubt minimales Stauchen bei Sub-Pixel-Fehlern */
+            flex-grow: 0;
         }
 
         .gallery-img {
@@ -76,17 +73,13 @@
             width: 100%;
             display: block;
             transition: transform 0.7s ease;
-            /* Da wir die Box exakt berechnen, brauchen wir kein object-fit: cover mehr zwingend, 
-               aber es dient als Sicherheitsnetz für Sub-Pixel-Rundungen */
             object-fit: cover; 
         }
 
-        /* Hover Effekt */
         .img-item:hover .gallery-img {
             transform: scale(1.03);
         }
 
-        /* Dropdown Animation */
         .dropdown-menu {
             opacity: 0;
             visibility: hidden;
@@ -116,37 +109,26 @@
     <header class="fixed top-0 w-full bg-white/95 backdrop-blur-md z-40 border-b border-gray-100 transition-all duration-300" id="main-header">
         <div class="max-w-[1800px] mx-auto px-6 h-12 flex items-center justify-between">
             
-            <!-- Logo -->
             <a href="#" onclick="app.filter('home')" class="font-display font-bold text-lg md:text-xl tracking-[0.15em] uppercase hover:opacity-60 transition-opacity">
                 Michael Förtsch
             </a>
 
-            <!-- Desktop Nav -->
             <nav class="hidden md:flex items-center gap-8">
-                
-                <!-- Dropdown -->
                 <div class="relative group cursor-pointer py-4">
                     <span class="text-xs font-display font-medium tracking-[0.15em] uppercase text-gray-400 group-hover:text-black transition-colors flex items-center gap-1">
                         Kategorien
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </span>
-                    
-                    <!-- Dropdown Content -->
                     <div class="dropdown-menu absolute left-0 top-full bg-white border border-gray-100 shadow-xl p-2 min-w-[200px] flex flex-col gap-1">
-                        <div id="desktop-dropdown-items">
-                            <!-- Items via JS -->
-                        </div>
+                        <div id="desktop-dropdown-items"></div>
                     </div>
                 </div>
-
                 <div class="h-4 w-[1px] bg-gray-300 mx-2"></div>
-                
                 <a href="info.html" class="text-xs font-display font-medium tracking-[0.15em] uppercase text-gray-400 hover:text-black transition-colors">
                     Info
                 </a>
             </nav>
 
-            <!-- Mobile Menu Toggle -->
             <button class="md:hidden p-2 -mr-2 text-black" onclick="app.toggleMobileMenu()">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             </button>
@@ -167,7 +149,7 @@
     </div>
 
     <!-- MAIN GALLERY -->
-    <main class="flex-grow pt-24 pb-20 px-4 md:px-8 w-full max-w-[1800px] mx-auto">
+    <main class="flex-grow pt-24 px-4 md:px-8 w-full max-w-[1800px] mx-auto">
         
         <div id="no-data-warning" class="hidden w-full max-w-2xl mx-auto text-center py-12 px-6 border border-yellow-200 bg-yellow-50 rounded-lg">
             <h3 class="text-yellow-800 font-bold mb-2">Galerie wird geladen...</h3>
@@ -184,7 +166,7 @@
         </div>
         
         <!-- Loading Sentinel -->
-        <div id="loading-trigger" class="h-24 w-full flex items-center justify-center mt-12 opacity-0 transition-opacity">
+        <div id="loading-trigger" class="h-24 w-full flex items-center justify-center mt-4 opacity-0 transition-opacity">
             <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce mx-1"></div>
             <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce mx-1 delay-100"></div>
             <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce mx-1 delay-200"></div>
@@ -231,10 +213,9 @@
     <script>
         const app = {
             data: [],
-            currentImages: [], // Liste der URLs
-            processedImages: [], // Liste der Objekte mit {src, width, height, ratio}
+            currentImages: [], 
+            processedImages: [], 
             
-            // State
             renderedCount: 0,
             batchSize: 10,
             lightboxIndex: 0,
@@ -242,13 +223,12 @@
             currentCategory: 'home',
             isLoading: false,
             
-            // Geometry Config
-            gap: 12, // px (muss mit CSS matchen)
-            idealHeight: 320, // Zielhöhe für Zeilen (wird je nach Screen angepasst)
+            gap: 12, 
+            idealHeight: 320, 
 
             init: function() {
                 if(!window.portfolioData || window.portfolioData.length === 0) {
-                    console.warn("data.js ist leer oder fehlt.");
+                    console.warn("data.js ist leer.");
                     document.getElementById('no-data-warning').classList.remove('hidden');
                     return;
                 }
@@ -260,12 +240,12 @@
                 this.setupObserver();
                 this.updateIdealHeight();
                 
-                // Debounce Resize Handler um Layout neu zu berechnen
                 let resizeTimer;
                 window.addEventListener('resize', () => {
                     clearTimeout(resizeTimer);
                     resizeTimer = setTimeout(() => {
                         this.updateIdealHeight();
+                        // Bei Resize rendern wir alles neu, damit die Zeilen passend brechen
                         this.reRender();
                     }, 200);
                 });
@@ -281,12 +261,13 @@
             },
 
             updateIdealHeight: function() {
+                // Je kleiner der Screen, desto kleiner die Zeilenhöhe, damit mehr Bilder pro Zeile passen
                 if (window.innerWidth < 768) {
-                    this.idealHeight = 180; // Mobile: Kleinere Zielhöhe
+                    this.idealHeight = 180; 
                 } else if (window.innerWidth < 1200) {
-                    this.idealHeight = 260; // Tablet
+                    this.idealHeight = 260; 
                 } else {
-                    this.idealHeight = 350; // Desktop
+                    this.idealHeight = 350; 
                 }
             },
 
@@ -296,13 +277,11 @@
 
                 this.data.forEach(cat => {
                     if(cat.id === 'general') return;
-                    
                     const dropBtn = document.createElement('button');
                     dropBtn.textContent = cat.label;
                     dropBtn.className = "text-left w-full px-4 py-2 text-xs font-display font-medium tracking-widest uppercase text-gray-500 hover:bg-gray-50 hover:text-black transition-colors";
                     dropBtn.onclick = () => this.filter(cat.id);
                     dropContainer.appendChild(dropBtn);
-
                     mobNav.appendChild(this.createMobileLink(cat.id, cat.label));
                 });
             },
@@ -314,7 +293,7 @@
                 return btn;
             },
 
-            filter: function(catId) {
+            filter: async function(catId) {
                 this.currentCategory = catId;
                 this.renderedCount = 0;
                 this.isLoading = false;
@@ -324,29 +303,51 @@
                 window.scrollTo({top: 0, behavior: 'smooth'});
 
                 if (catId === 'home') {
-                    // Sammle ALLE Bilder für die Startseite
-                    const allImages = this.data.flatMap(cat => 
+                    // --- HOME LOGIC: 7 REIHEN FÜLLEN ---
+                    
+                    // 1. Alle verfügbaren Bilder holen
+                    let allImages = this.data.flatMap(cat => 
                         cat.images.map(src => ({ src: src, title: this.formatTitle(src) }))
                     );
-                    // Mische alle Bilder
+                    
+                    // 2. Mischen
                     for (let i = allImages.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [allImages[i], allImages[j]] = [allImages[j], allImages[i]];
                     }
-                    // Limit Startseite: 35 Bilder (für ca. 7-8 Reihen)
-                    this.currentImages = allImages.slice(0, 35);
+
+                    // 3. Einen großen Batch vorladen (60 Bilder sollten locker für 7 Reihen reichen)
+                    const candidateImages = allImages.slice(0, 60);
+                    
+                    // Loader anzeigen
+                    document.getElementById('loading-trigger').classList.add('opacity-100');
+
+                    // 4. Dimensionen laden
+                    const loadedCandidates = await Promise.all(candidateImages.map(item => this.preloadImage(item)));
+                    const validCandidates = loadedCandidates.filter(item => item !== null);
+                    
+                    // 5. Geometrie berechnen, aber Limit setzen
+                    this.renderGeometry(validCandidates, false, 7); // Max 7 Reihen
+                    
+                    document.getElementById('loading-trigger').classList.remove('opacity-100');
+
+                    // Auf der Home-Seite deaktivieren wir das Infinite Loading
+                    if(this.observer) this.observer.disconnect();
+
                 } else {
+                    // --- NORMALE KATEGORIE: INFINITE SCROLL ---
                     const category = this.data.find(c => c.id === catId);
                     if(category) {
                         this.currentImages = category.images.map(src => ({ src: src, title: this.formatTitle(src) }));
                     } else {
                         this.currentImages = [];
                     }
+                    // Observer reaktivieren falls deaktiviert
+                    this.setupObserver();
+                    this.loadMore();
                 }
-                this.loadMore();
             },
             
-            // Lädt Bilder-Metadaten vor, um Layout zu berechnen
             preloadImage: function(imgObj) {
                 return new Promise((resolve) => {
                     const img = new Image();
@@ -359,22 +360,20 @@
                             ratio: img.naturalWidth / img.naturalHeight
                         });
                     };
-                    img.onerror = () => {
-                        // Bei Fehler überspringen wir das Bild (oder Fallback 1:1)
-                        resolve(null);
-                    };
+                    img.onerror = () => resolve(null);
                 });
             },
 
             reRender: function() {
-                // Bei Resize bauen wir das vorhandene Array neu auf, ohne neu zu laden
                 if(this.processedImages.length === 0) return;
                 document.getElementById('gallery-container').innerHTML = '';
-                this.renderGeometry(this.processedImages, true); // true = redraw all
+                // Beim Resize zeichnen wir alle bisher geladenen Bilder neu
+                // Home: Behält das 7-Reihen Limit implizit durch processedImages (wir laden nicht nach)
+                this.renderGeometry(this.processedImages, true); 
             },
 
             loadMore: async function() {
-                if (this.isLoading) return;
+                if (this.isLoading || this.currentCategory === 'home') return;
 
                 const trigger = document.getElementById('loading-trigger');
                 
@@ -386,77 +385,106 @@
                 this.isLoading = true;
                 trigger.classList.add('opacity-100');
 
-                // Auf Home alles auf einmal laden (35), sonst Batch
-                let currentBatchSize = (this.currentCategory === 'home') ? 35 : this.batchSize;
-                const nextBatchRaw = this.currentImages.slice(this.renderedCount, this.renderedCount + currentBatchSize);
-
-                // 1. Bilder vorladen um Dimensionen zu bekommen
+                const nextBatchRaw = this.currentImages.slice(this.renderedCount, this.renderedCount + this.batchSize);
                 const loadedBatch = await Promise.all(nextBatchRaw.map(item => this.preloadImage(item)));
-                
-                // Null-Werte filtern (Fehlerhafte Bilder)
                 const validBatch = loadedBatch.filter(item => item !== null);
 
-                // Zu verarbeiteten Bildern hinzufügen
-                this.processedImages = [...this.processedImages, ...validBatch];
-                
-                // 2. Geometrie berechnen und rendern
-                // Wir rendern nur den NEUEN Teil, außer beim Resize
+                // Hier fügen wir sie hinzu und rendern
                 this.renderGeometry(validBatch, false);
 
                 this.renderedCount += nextBatchRaw.length;
-                
                 this.isLoading = false;
                 trigger.classList.remove('opacity-100');
             },
 
-            // Der Kern des Justified Layouts
-            renderGeometry: function(imagesToRender, isRedraw = false) {
+            renderGeometry: function(imagesToRender, isRedraw = false, maxRows = 0) {
                 const container = document.getElementById('gallery-container');
-                const containerWidth = container.clientWidth;
+                // Puffer für Scrollbar abziehen falls nötig, floor für Sicherheit
+                const containerWidth = Math.floor(container.getBoundingClientRect().width); 
                 
-                // Buffer für die aktuelle Zeile
                 let rowBuffer = [];
                 let rowAspectRatioSum = 0;
+                let rowsCreated = 0;
 
-                // Wenn wir nicht alles neu zeichnen, müssen wir wissen, wo wir im Gesamtindex stehen für Lightbox
-                let startIndex = isRedraw ? 0 : (this.processedImages.length - imagesToRender.length);
+                // Wenn wir neu zeichnen, nutzen wir alle Bilder. Wenn nicht, fügen wir die neuen hinzu.
+                let imagesSource = isRedraw ? imagesToRender : imagesToRender;
 
-                imagesToRender.forEach((img, index) => {
-                    const globalIndex = startIndex + index;
+                // Nur wenn NICHT Redraw, updaten wir das globale Array
+                if (!isRedraw) {
+                     // Aufpassen: bei Home haben wir schon gefiltert, bei LoadMore kommt ein Batch
+                     // Wir fügen sie einfach hinzu, wenn sie nicht schon da sind (einfacher Check über globalIndex logic wäre besser, aber hier reicht push)
+                     // Aber wir müssen aufpassen, dass wir bei Home "processedImages" richtig setzen
+                }
+                
+                // Für die Schleife brauchen wir einen Start-Index für die Lightbox
+                let startIndex = this.processedImages.length;
+                if(isRedraw) startIndex = 0;
+
+                // Temporäres Array für das, was wir jetzt rendern WÜRDEN
+                let renderedInThisCall = [];
+
+                for (let i = 0; i < imagesSource.length; i++) {
+                    // Check Row Limit (nur für Home relevant)
+                    if (maxRows > 0 && rowsCreated >= maxRows) break;
+
+                    const img = imagesSource[i];
+                    const globalIndex = startIndex + i;
                     
-                    // Bild zur Zeile hinzufügen
-                    rowBuffer.push({ ...img, globalIndex });
+                    // Objekt für processedImages vorbereiten (falls noch nicht drin)
+                    const imgWithIndex = { ...img, globalIndex };
+                    renderedInThisCall.push(imgWithIndex);
+
+                    rowBuffer.push(imgWithIndex);
                     rowAspectRatioSum += img.ratio;
 
-                    // Berechnete Breite der Zeile bei idealHeight
-                    // Breite = Summe(Ratios) * Höhe + (AnzahlLücken * Lücke)
                     const currentWidth = (rowAspectRatioSum * this.idealHeight) + ((rowBuffer.length - 1) * this.gap);
 
-                    // Wenn Zeile voll ist (oder breiter als Container)
                     if (currentWidth >= containerWidth) {
                         this.flushRow(container, rowBuffer, rowAspectRatioSum, containerWidth);
-                        // Buffer leeren
                         rowBuffer = [];
                         rowAspectRatioSum = 0;
+                        rowsCreated++;
                     }
-                });
+                }
 
-                // Letzte Zeile verarbeiten (orphan handling)
-                // Auf der Startseite wollen wir sie möglichst füllen, aber nicht extrem verzerren.
-                if (rowBuffer.length > 0) {
-                    // Option: Letzte Zeile linksbündig lassen mit idealHeight?
-                    // Oder erzwingen zu füllen? 
-                    // Standard Flickr-Style: Links lassen, wenn sie nicht fast voll ist.
-                    // Wir füllen sie nur auf, wenn sie mind. 75% der Breite hat, sonst linksbündig.
+                // WICHTIG: Wenn wir Home sind und maxRows haben, müssen wir processedImages auf das begrenzen, was wirklich gerendert wurde
+                if (!isRedraw) {
+                    // Wir haben abgebrochen oder sind fertig. 
+                    // Die Bilder im rowBuffer (Orphans) verwerfen wir bei 'Home', um unfertige Zeilen zu vermeiden?
+                    // Nein, User sagte "7 Reihen". Wenn die 7. Reihe halb voll ist, ist das okay?
+                    // Besser: Wir rendern Orphans nur wenn wir nicht im "Strict Mode" (Home) sind oder wenn es wirklich die allerletzten Bilder sind.
                     
-                    // Testbreite berechnen
-                    const testWidth = (rowAspectRatioSum * this.idealHeight) + ((rowBuffer.length - 1) * this.gap);
-                    
-                    if (testWidth > containerWidth * 0.75) {
-                         // Fast voll -> Füllen
-                         this.flushRow(container, rowBuffer, rowAspectRatioSum, containerWidth);
+                    if (maxRows > 0) {
+                         // Home Mode: Wir speichern nur die Bilder, die es in die 7 Reihen geschafft haben
+                         // Die Bilder im rowBuffer sind "übrig". Wenn wir genau 7 Reihen wollten, sind wir hier fertig.
+                         // Wenn rowsCreated < 7, müssen wir die Orphan Row rendern.
+                         if (rowBuffer.length > 0 && rowsCreated < maxRows) {
+                             this.flushRow(container, rowBuffer, rowAspectRatioSum, containerWidth, true);
+                             rowsCreated++;
+                         }
+                         
+                         // Wir fügen ALLE gerenderten Bilder zu processedImages hinzu (fürs Resize später)
+                         // Da wir renderedInThisCall haben, müssen wir filtern, was wirklich geflusht wurde?
+                         // Vereinfachung: Wir nehmen renderedInThisCall. 
+                         // Aber wir müssen die Bilder, die im letzten Buffer waren aber NICHT geflusht wurden (weil rowsCreated >= maxRows limit hit), entfernen.
+                         // Das ist komplex. Einfacher: Wir nutzen den DOM State oder bauen processedImages sauber auf.
+                         
+                         // Fix: Wir fügen einfach alles hinzu, was wir verarbeitet haben.
+                         this.processedImages = [...this.processedImages, ...renderedInThisCall];
+                         
+                         // Aber wir müssen die überschüssigen aus dem Buffer entfernen, falls wir abgebrochen haben?
+                         // Wenn die Schleife bei break rausgeht, ist rowBuffer nicht leer? Nein, break passiert am Anfang.
+                         // Wenn wir am Ende sind und rowBuffer voll ist -> Orphan flush.
                     } else {
-                        // Zu leer -> Linksbündig rendern mit idealHeight
+                        // Normaler Modus (Kategorie)
+                        if (rowBuffer.length > 0) {
+                             this.flushRow(container, rowBuffer, rowAspectRatioSum, containerWidth, true);
+                        }
+                        this.processedImages = [...this.processedImages, ...renderedInThisCall];
+                    }
+                } else {
+                    // Beim Redraw (Resize) müssen wir Orphans immer rendern
+                    if (rowBuffer.length > 0) {
                         this.flushRow(container, rowBuffer, rowAspectRatioSum, containerWidth, true);
                     }
                 }
@@ -466,35 +494,30 @@
                 const rowDiv = document.createElement('div');
                 rowDiv.className = 'gallery-row';
                 
-                // Verfügbare Breite für Bilder (Container - Lücken)
                 const totalGapWidth = (rowImages.length - 1) * this.gap;
                 const availableWidthForImages = containerWidth - totalGapWidth;
 
-                // Exakte Höhe berechnen: Höhe = Breite / SummeRatios
                 let rowHeight = availableWidthForImages / totalRatio;
 
-                // Falls es eine Orphan-Row ist (letzte Zeile), Höhe begrenzen
                 if (isOrphan) {
+                    // Bei Orphan Row (letzte Zeile) begrenzen wir die Höhe auf IdealHeight
+                    // Damit das Bild nicht riesig wird
                     rowHeight = this.idealHeight;
-                    // Wir müssen hier ein Dummy-Element einfügen oder justify-content start nutzen,
-                    // aber da wir widths setzen, reicht justify-content: flex-start im CSS eigentlich nicht,
-                    // da wir width in % oder px berechnen.
+                    // Wir müssen justify-content anpassen, da space-between sonst Bilder nach außen drückt
                     rowDiv.style.justifyContent = 'flex-start';
                 }
 
-                // Style setzen
-                rowDiv.style.height = rowHeight + 'px';
+                rowDiv.style.height = Math.floor(rowHeight) + 'px';
 
                 rowImages.forEach(img => {
                     const div = document.createElement('div');
                     div.className = 'img-item group';
                     div.onclick = () => this.openLightbox(img.globalIndex);
                     
-                    // Breite berechnen
-                    // width = height * ratio
                     const imgWidth = rowHeight * img.ratio;
-                    div.style.width = imgWidth + 'px';
-                    div.style.height = rowHeight + 'px'; // Explizit setzen
+                    
+                    div.style.width = imgWidth + 'px'; // Float ist ok, Browser verrechnet das
+                    div.style.height = Math.floor(rowHeight) + 'px'; 
 
                     const imageEl = new Image();
                     imageEl.src = img.src;
@@ -504,7 +527,6 @@
                     
                     div.appendChild(imageEl);
 
-                    // Overlay
                     const overlay = document.createElement('div');
                     overlay.className = "absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none";
                     div.appendChild(overlay);
@@ -516,6 +538,7 @@
             },
 
             setupObserver: function() {
+                if(this.observer) this.observer.disconnect();
                 const options = { root: null, rootMargin: '400px', threshold: 0.1 };
                 this.observer = new IntersectionObserver((entries) => {
                     if(entries[0].isIntersecting) {
@@ -526,9 +549,7 @@
             },
 
             openLightbox: function(index) {
-                // Suchen im processedImages Array, da dieses die Quelle der Wahrheit für gerenderte Bilder ist
                 if (index < 0 || index >= this.processedImages.length) return;
-
                 this.lightboxIndex = index;
                 this.updateLightbox();
                 const lb = document.getElementById('lightbox');

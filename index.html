@@ -29,47 +29,51 @@
     </script>
     <style>
         :root {
-            --gap: 16px;
-            --row-base-height: 280px; /* Basis-Höhe für eine Raster-Einheit */
-        }
-
-        @media (max-width: 768px) {
-            :root {
-                --row-base-height: 200px;
-            }
+            --gap: 24px; /* Etwas mehr Luft für den Galerie-Look */
         }
 
         .gallery-grid {
             display: grid;
-            /* Automatische Spaltenbreite, min. 300px */
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            /* Feste Zeilenhöhe, damit Span 2 funktioniert */
-            grid-auto-rows: var(--row-base-height); 
+            /* 
+               Min 320px Spalten. 
+               Das Grid passt sich automatisch an.
+            */
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            
+            /* 
+               TRICK: Wir setzen die Zeilenhöhe auf 1px.
+               Dadurch können wir per JS pixelgenau sagen, wie hoch ein Bild sein muss.
+            */
+            grid-auto-rows: 1px; 
             gap: var(--gap);
-            /* WICHTIG: 'dense' sorgt dafür, dass Lücken gefüllt werden */
-            grid-auto-flow: dense; 
             width: 100%;
             padding-bottom: 80px;
+            /* Dense sorgt dafür, dass kleine Bilder Lücken füllen, die große hinterlassen */
+            grid-auto-flow: dense; 
         }
 
-        /* Mobile: Einfaches Raster, keine wilden Spans */
+        /* Mobile: Alles untereinander, volle Breite */
         @media (max-width: 640px) {
             .gallery-grid {
                 grid-template-columns: 1fr;
-                grid-auto-rows: auto; /* Höhe passt sich Inhalt an */
                 display: flex;
                 flex-direction: column;
+                gap: 32px; /* Mehr Abstand auf Mobile */
             }
         }
 
         .img-item {
             position: relative;
-            background-color: #f3f4f6;
+            background-color: #f3f4f6; /* Platzhalterfarbe während Laden */
             cursor: pointer;
             overflow: hidden;
             opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+            margin-bottom: 0; /* Margin wird durch Grid Gap erledigt */
+            
+            /* Wichtig: Das Item selbst muss sich der Grid-Zelle anpassen */
+            width: 100%;
         }
 
         .img-item.loaded {
@@ -79,29 +83,21 @@
 
         /* Span Klassen für Desktop */
         @media (min-width: 641px) {
-            .row-span-2 {
-                grid-row: span 2;
-            }
             .col-span-2 {
                 grid-column: span 2;
-            }
-            /* Großes Highlight Bild (2x2) */
-            .box-span-2 {
-                grid-column: span 2;
-                grid-row: span 2;
             }
         }
 
         .gallery-img {
-            height: 100%;
-            width: 100%;
             display: block;
-            object-fit: cover; /* Wichtig für das Grid-Layout */
+            width: 100%;
+            height: auto; /* WICHTIG: Height auto erhält die Proportion */
             transition: transform 0.8s ease;
+            will-change: transform;
         }
 
         .img-item:hover .gallery-img {
-            transform: scale(1.05);
+            transform: scale(1.03);
         }
 
         .dropdown-menu {
@@ -239,13 +235,12 @@
         const app = {
             data: [],
             currentImages: [], 
-            processedImages: [], // Geladene Bilder für die Lightbox-Referenz
+            processedImages: [], // Für Lightbox
             renderedCount: 0, 
             loadId: 0, 
             lightboxIndex: 0,
             observer: null,
-            currentCategory: '',
-            isLoading: false,
+            resizeTimeout: null,
 
             init: function() {
                 if(!window.portfolioData || window.portfolioData.length === 0) {
@@ -259,9 +254,18 @@
 
                 this.setupNavigation();
                 
-                // Initial load
+                // Init load
                 this.filter('home'); 
                 
+                // Resize Handler: Wenn sich die Fensterbreite ändert, 
+                // ändern sich die Spaltenbreiten. Wir müssen die Höhen neu berechnen.
+                window.addEventListener('resize', () => {
+                    clearTimeout(this.resizeTimeout);
+                    this.resizeTimeout = setTimeout(() => {
+                        this.layoutAllItems();
+                    }, 100);
+                });
+
                 document.addEventListener('keydown', (e) => {
                     if (document.getElementById('lightbox').classList.contains('opacity-0')) return;
                     if (e.key === 'Escape') this.closeLightbox();
@@ -296,9 +300,7 @@
                 this.loadId++; 
                 const myLoadId = this.loadId;
 
-                this.currentCategory = catId;
                 this.renderedCount = 0;
-                this.isLoading = false;
                 this.processedImages = [];
                 
                 const container = document.getElementById('gallery-container');
@@ -306,22 +308,21 @@
                 window.scrollTo({top: 0, behavior: 'smooth'});
 
                 if (catId === 'home') {
-                    // Mischen und viele Bilder nehmen
                     let allImages = this.data.flatMap(cat => 
                         cat.images.map(src => ({ src: src, title: this.formatTitle(src) }))
                     );
+                    // Shuffle
                     for (let i = allImages.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [allImages[i], allImages[j]] = [allImages[j], allImages[i]];
                     }
-                    this.currentImages = allImages; // Alle Bilder
+                    this.currentImages = allImages; 
                 } else {
                     const category = this.data.find(c => c.id === catId);
                     this.currentImages = category ? category.images.map(src => ({ src: src, title: this.formatTitle(src) })) : [];
                 }
 
-                // Starte mit 40 Bildern, damit das Grid gefüllt aussieht
-                await this.loadBatch(myLoadId, 40);
+                await this.loadBatch(myLoadId, 50);
                 
                 this.setupObserver();
             },
@@ -347,13 +348,11 @@
                 
                 const trigger = document.getElementById('loading-trigger');
                 trigger.classList.add('opacity-100');
-                this.isLoading = true;
 
                 const nextRaw = this.currentImages.slice(this.renderedCount, this.renderedCount + count);
                 
                 if (nextRaw.length === 0) {
                     trigger.classList.remove('opacity-100');
-                    this.isLoading = false;
                     return;
                 }
 
@@ -362,36 +361,41 @@
                 if (reqLoadId !== this.loadId) return;
 
                 const validBatch = loadedBatch.filter(item => item !== null);
-                
-                // Rendern ins CSS Grid
                 const container = document.getElementById('gallery-container');
                 
                 validBatch.forEach((imgData) => {
-                    // Zur globalen Liste für Lightbox
                     const globalIdx = this.processedImages.length;
                     this.processedImages.push(imgData);
 
                     const div = document.createElement('div');
-                    // Grundklasse
                     let classes = 'img-item group';
 
-                    // SPAN LOGIK (Wild Grid)
-                    // Definiert, welches Bild groß/hoch/breit wird
+                    // === WILD GRID LOGIK ===
+                    // Entscheiden, ob ein Bild 2 Spalten einnimmt.
                     const ratio = imgData.ratio;
                     
-                    // Hochkant (Portrait): Schmaler als 0.8 -> Span 2 Rows
-                    if (ratio < 0.8) {
-                        classes += ' row-span-2';
+                    let span2 = false;
+                    // Panorama (> 1.6) -> immer breit
+                    if (ratio > 1.6) {
+                        span2 = true;
                     } 
-                    // Panorama: Breiter als 1.6 -> Span 2 Columns
-                    else if (ratio > 1.6) {
+                    // Zufällige "Feature" Bilder (wenn Bild nicht zu hochformatig ist)
+                    // Wir wollen keine extremen vertikalen Bilder noch weiter strecken, sonst werden sie riesig.
+                    // Also: Nur Bilder mit Ratio > 0.8 zufällig vergrößern.
+                    else if (Math.random() > 0.85 && ratio > 0.8) {
+                        span2 = true;
+                    }
+
+                    if (span2) {
                         classes += ' col-span-2';
+                        // Markierung für den Layout-Rechner
+                        div.dataset.span = "2"; 
+                    } else {
+                        div.dataset.span = "1";
                     }
-                    // Optional: Zufällige "Big Box" (selten), wenn fast quadratisch
-                    // nur wenn wir nicht auf Mobile sind
-                    else if (Math.random() > 0.95 && ratio > 0.9 && ratio < 1.1) {
-                        classes += ' box-span-2';
-                    }
+
+                    // Ratio speichern für Neuberechnung bei Resize
+                    div.dataset.ratio = ratio;
 
                     div.className = classes;
                     div.onclick = () => this.openLightbox(globalIdx);
@@ -400,7 +404,6 @@
                     img.src = imgData.src;
                     img.alt = imgData.title;
                     img.className = 'gallery-img';
-                    img.loading = 'lazy';
                     
                     div.appendChild(img);
 
@@ -410,25 +413,53 @@
 
                     container.appendChild(div);
 
-                    // Fade-In Animation triggern
+                    // Einmaliges initiales Layout für dieses Item berechnen
+                    this.layoutItem(div);
+
                     requestAnimationFrame(() => {
                         div.classList.add('loaded');
                     });
                 });
 
                 this.renderedCount += nextRaw.length;
-                this.isLoading = false;
                 trigger.classList.remove('opacity-100');
             },
 
+            // Berechnet die exakte Höhe (Row Span) eines einzelnen Items
+            // basierend auf der aktuellen Breite im Grid.
+            layoutItem: function(item) {
+                const ratio = parseFloat(item.dataset.ratio);
+                // Aktuelle Breite im DOM messen
+                const width = item.getBoundingClientRect().width;
+                
+                if(width === 0) return; // Noch nicht sichtbar/gerendert
+
+                // Höhe berechnen basierend auf Original-Ratio
+                const height = width / ratio;
+                
+                // Da wir grid-auto-rows: 1px haben, entspricht die Höhe (plus kleiner Puffer für Gap-Ausgleich)
+                // direkt dem Span-Wert. 
+                // Grid Gap (var(--gap)) wird vom Browser *zwischen* den Tracks hinzugefügt.
+                // Ein Item, das 300px hoch ist, braucht ca span 300.
+                // Manche Browser runden minimal anders, daher Math.ceil.
+                
+                const span = Math.ceil(height);
+                item.style.gridRowEnd = `span ${span}`;
+            },
+
+            // Alle Items neu berechnen (bei Resize)
+            layoutAllItems: function() {
+                const items = document.querySelectorAll('.img-item');
+                items.forEach(item => this.layoutItem(item));
+            },
+
             loadMore: function() {
-                if (this.isLoading) return;
-                this.loadBatch(this.loadId, 12);
+                this.loadBatch(this.loadId, 15);
             },
 
             setupObserver: function() {
                 if(this.observer) this.observer.disconnect();
-                const options = { root: null, rootMargin: '400px', threshold: 0.05 };
+                const options = { root: null, rootMargin: '600px', threshold: 0.05 };
                 this.observer = new IntersectionObserver((entries) => {
                     if(entries[0].isIntersecting) {
                         this.loadMore();

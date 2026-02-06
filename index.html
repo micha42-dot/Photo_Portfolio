@@ -32,23 +32,22 @@
             --gap: 24px;
         }
 
-        /* 
-           Masonry Grid Basis 
-           Wir nutzen grid-auto-rows: 1px, um die Höhe pixelgenau via JS zu steuern.
-           row-gap muss 0 sein, der vertikale Abstand kommt vom Item selbst.
-        */
         .gallery-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             grid-auto-rows: 1px;
+            
+            /* Horizontaler Abstand via Grid */
             column-gap: var(--gap);
+            
+            /* Vertikaler Abstand via JS-Span Berechnung (siehe unten), daher hier 0 */
             row-gap: 0; 
+            
             width: 100%;
             padding-bottom: 80px;
-            grid-auto-flow: dense; /* Füllt Lücken auf */
+            grid-auto-flow: dense; 
         }
 
-        /* Mobile Anpassung */
         @media (max-width: 640px) {
             .gallery-grid {
                 display: flex;
@@ -59,15 +58,18 @@
 
         .img-item {
             position: relative;
-            background-color: #f3f4f6;
-            margin-bottom: var(--gap); /* Vertikaler Abstand hier! */
+            background-color: transparent; /* Transparent, damit der Gap-Bereich weiß bleibt */
             width: 100%;
             cursor: pointer;
             
-            /* Initial unsichtbar für Fade-In */
+            /* KEIN margin-bottom mehr! Der Abstand wird in den Grid-Span eingerechnet. */
+            margin: 0; 
+            
             opacity: 0;
             transform: translateY(20px);
             transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+            
+            overflow: hidden; /* Sicherstellen, dass nichts rausragt */
         }
 
         .img-item.loaded {
@@ -75,7 +77,6 @@
             transform: translateY(0);
         }
 
-        /* Desktop Spanning für "Wild Look" */
         @media (min-width: 641px) {
             .col-span-2 {
                 grid-column: span 2;
@@ -88,6 +89,9 @@
             height: auto;
             will-change: transform;
             transition: transform 0.7s ease;
+            
+            /* Kleiner Trick: Block-Display verhindert extra Whitespace unter inline-Bilder */
+            vertical-align: bottom; 
         }
 
         .img-item:hover .gallery-img {
@@ -227,16 +231,17 @@
     <script>
         const app = {
             data: [],
-            currentImages: [],    // Liste aller Bild-URLs der aktuellen Kategorie
-            
-            // Layout State
-            processedImages: [],  // Liste der erfolgreich geladenen Bilder (für Lightbox)
-            renderedCount: 0,     // Wie viele Bilder haben wir schon ins DOM geworfen
+            currentImages: [],    
+            processedImages: [],  
+            renderedCount: 0,     
             
             lightboxIndex: 0,
             observer: null,
             resizeObserver: null,
             isLoading: false,
+
+            // Gap Size passend zum CSS (:root var(--gap))
+            gapSize: 24, 
 
             init: function() {
                 if(!window.portfolioData || window.portfolioData.length === 0) {
@@ -250,9 +255,7 @@
 
                 this.setupNavigation();
                 
-                // RESIZE OBSERVER:
-                // Wenn sich die Breite eines Grid-Items ändert (z.B. Fenster verkleinert),
-                // muss die Höhe (span) neu berechnet werden.
+                // Wir beobachten Container-Resizes für dynamische Anpassungen
                 this.resizeObserver = new ResizeObserver(entries => {
                     for (let entry of entries) {
                         this.resizeGridItem(entry.target);
@@ -292,7 +295,6 @@
             },
 
             filter: function(catId) {
-                // Reset
                 this.renderedCount = 0;
                 this.processedImages = [];
                 this.isLoading = false;
@@ -302,11 +304,9 @@
                 window.scrollTo({top: 0, behavior: 'smooth'});
 
                 if (catId === 'home') {
-                    // Alle Bilder sammeln
                     let allImages = this.data.flatMap(cat => 
                         cat.images.map(src => ({ src: src, title: this.formatTitle(src) }))
                     );
-                    // Shuffle
                     for (let i = allImages.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [allImages[i], allImages[j]] = [allImages[j], allImages[i]];
@@ -318,11 +318,9 @@
                 }
 
                 this.setupObserver();
-                this.loadMore(); // Erste Charge laden
+                this.loadMore();
             },
 
-            // Lädt den nächsten Schwung Bilder ins DOM
-            // WICHTIG: Wir warten NICHT auf den Download. Wir erstellen die Tags sofort.
             loadMore: function() {
                 if(this.isLoading) return;
                 
@@ -330,7 +328,6 @@
                 trigger.classList.add('opacity-100');
                 this.isLoading = true;
 
-                // Nimm die nächsten 15 Bilder
                 const batchSize = 15;
                 const batch = this.currentImages.slice(this.renderedCount, this.renderedCount + batchSize);
 
@@ -346,62 +343,45 @@
                     const itemDiv = document.createElement('div');
                     itemDiv.className = 'img-item group';
                     
-                    // Bild erstellen
                     const img = new Image();
                     img.className = 'gallery-img';
                     img.alt = imgData.title;
                     
-                    // EVENT: Wenn Bild fertig geladen ist -> Größe berechnen
                     img.onload = () => {
-                        // Wild Look Logic: Ist es ein Panorama?
                         const ratio = img.naturalWidth / img.naturalHeight;
                         
-                        // Wenn extrem breit (> 1.6) ODER zufällig manchmal auch normale Querformate
-                        // ABER: keine Hochformat-Bilder strecken (sieht meist doof aus)
+                        // === BEREINIGTE LOGIK ===
+                        // Nur echte Panoramas bekommen Double-Width.
+                        // Das verhindert "messy" Layouts bei fast-quadratischen Bildern.
                         if (ratio > 1.6) {
                             itemDiv.classList.add('col-span-2');
                         } 
-                        else if (ratio > 1.2 && Math.random() > 0.8) {
-                             // Zufälliges Highlight für normale Querformate
+                        // Ganz selten bei "Breitbild", aber nicht übertreiben
+                        else if (ratio > 1.25 && Math.random() > 0.90) {
                              itemDiv.classList.add('col-span-2');
                         }
 
-                        // WICHTIG: Jetzt zum Array für Lightbox hinzufügen (in richtiger Reihenfolge schwierig, 
-                        // daher einfach Push. Die Reihenfolge in der Lightbox entspricht der Lade-Reihenfolge)
-                        // Besser: Wir hängen Daten ans DOM Element und lesen bei Klick aus.
                         itemDiv.dataset.src = imgData.src;
                         itemDiv.dataset.title = imgData.title;
 
-                        // Höhe berechnen
+                        // Layout berechnen
                         this.resizeGridItem(itemDiv);
                         
-                        // Fade In
                         itemDiv.classList.add('loaded');
-                        
-                        // Überwachen für spätere Resizes (Fensteränderung)
                         this.resizeObserver.observe(itemDiv);
                     };
 
-                    // Fehlerbehandlung: Wenn Bild kaputt, Element löschen
-                    img.onerror = () => {
-                        itemDiv.remove();
-                    };
+                    img.onerror = () => { itemDiv.remove(); };
                     
-                    // Klick -> Lightbox
                     itemDiv.onclick = () => {
-                        // Wir bauen die processedImages Liste dynamisch basierend auf dem DOM,
-                        // damit die Reihenfolge stimmt.
                         this.updateProcessedImagesFromDOM();
-                        // Finde Index dieses Bildes
                         const idx = this.processedImages.findIndex(p => p.src === imgData.src);
                         this.openLightbox(idx);
                     };
 
-                    img.src = imgData.src; // Start Loading
-
+                    img.src = imgData.src; 
                     itemDiv.appendChild(img);
                     
-                    // Hover Overlay
                     const overlay = document.createElement('div');
                     overlay.className = "absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none";
                     itemDiv.appendChild(overlay);
@@ -411,10 +391,8 @@
 
                 this.renderedCount += batch.length;
                 
-                // Kurze Pause, damit der Observer nicht sofort wieder feuert
                 setTimeout(() => {
                     this.isLoading = false;
-                    // Check ob wir schon am Ende sind
                     if (this.renderedCount >= this.currentImages.length) {
                         trigger.classList.remove('opacity-100');
                         if(this.observer) this.observer.disconnect();
@@ -422,31 +400,27 @@
                 }, 100);
             },
 
-            // Die Magie: Berechnet wie viele 1px Zeilen das Item braucht
+            // === GAP FIX ===
+            // Wir berechnen den Abstand (Gap) mit in den Span ein.
+            // Der Container wird so hoch wie das Bild + Gap.
+            // Das Bild liegt oben, der untere Teil bleibt leer -> Perfekter Abstand.
             resizeGridItem: function(item) {
-                const grid = document.getElementsByClassName('gallery-grid')[0];
-                if(!grid) return;
-
-                const rowHeight = 1; // aus CSS grid-auto-rows
-                const rowGap = 0;    // aus CSS row-gap
-                
-                // Wir schauen uns das Bild im Item an
                 const img = item.querySelector('img');
                 if(!img) return;
 
-                // Tatsächliche Höhe im Browser (nach CSS Skalierung width:100%)
-                // Wir nutzen getBoundingClientRect für Sub-Pixel Genauigkeit
+                const rowHeight = 1; // 1px
+                const rowGap = 0;    // 0px
+                
+                // Bildhöhe im DOM
                 const contentHeight = img.getBoundingClientRect().height;
                 
-                // Da margin-bottom den Abstand macht, müssen wir den nicht in den Span einrechnen.
-                // Span = Bildhöhe / 1px.
-                const rowSpan = Math.ceil((contentHeight) / (rowHeight + rowGap));
+                // Formel: (Bildhöhe + Gewünschter_Abstand) / 1px
+                const rowSpan = Math.ceil((contentHeight + this.gapSize) / (rowHeight + rowGap));
                 
                 item.style.gridRowEnd = "span " + rowSpan;
             },
 
             updateProcessedImagesFromDOM: function() {
-                // Liest alle aktuell sichtbaren Bilder aus dem DOM in der richtigen Reihenfolge
                 const items = document.querySelectorAll('.img-item.loaded');
                 this.processedImages = Array.from(items).map(item => ({
                     src: item.dataset.src,

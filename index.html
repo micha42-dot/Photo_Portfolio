@@ -28,59 +28,70 @@
         }
     </script>
     <style>
-        /* Basis-Konfiguration */
         :root {
-            --gap: 12px;
+            --gap: 24px;
         }
 
-        .gallery-container {
-            display: flex;
-            flex-direction: column;
-            gap: var(--gap);
+        /* 
+           Masonry Grid Basis 
+           Wir nutzen grid-auto-rows: 1px, um die Höhe pixelgenau via JS zu steuern.
+           row-gap muss 0 sein, der vertikale Abstand kommt vom Item selbst.
+        */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            grid-auto-rows: 1px;
+            column-gap: var(--gap);
+            row-gap: 0; 
             width: 100%;
-            overflow: hidden; 
             padding-bottom: 80px;
+            grid-auto-flow: dense; /* Füllt Lücken auf */
         }
 
-        .gallery-row {
-            display: flex;
-            flex-direction: row;
-            flex-wrap: nowrap; 
-            justify-content: space-between;
-            width: 100%;
-            gap: var(--gap);
-            
-            /* Startzustand unsichtbar */
-            opacity: 0;
-            transform: translateY(30px);
-            
-            /* Animation */
-            animation: fadeUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-        }
-
-        @keyframes fadeUp {
-            to { opacity: 1; transform: translateY(0); }
+        /* Mobile Anpassung */
+        @media (max-width: 640px) {
+            .gallery-grid {
+                display: flex;
+                flex-direction: column;
+                gap: 32px;
+            }
         }
 
         .img-item {
             position: relative;
             background-color: #f3f4f6;
+            margin-bottom: var(--gap); /* Vertikaler Abstand hier! */
+            width: 100%;
             cursor: pointer;
-            overflow: hidden;
-            flex-shrink: 1; 
-            flex-grow: 1; 
+            
+            /* Initial unsichtbar für Fade-In */
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+
+        .img-item.loaded {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Desktop Spanning für "Wild Look" */
+        @media (min-width: 641px) {
+            .col-span-2 {
+                grid-column: span 2;
+            }
         }
 
         .gallery-img {
-            height: 100%;
-            width: 100%;
             display: block;
+            width: 100%;
+            height: auto;
+            will-change: transform;
             transition: transform 0.7s ease;
-            object-fit: cover; 
         }
 
         .img-item:hover .gallery-img {
-            transform: scale(1.03);
+            transform: scale(1.02);
         }
 
         .dropdown-menu {
@@ -164,7 +175,7 @@
             </div>
         </div>
 
-        <div id="gallery-container" class="gallery-container">
+        <div id="gallery-container" class="gallery-grid">
             <!-- Bilder werden hier eingefügt -->
         </div>
         
@@ -216,21 +227,16 @@
     <script>
         const app = {
             data: [],
-            currentImages: [], 
+            currentImages: [],    // Liste aller Bild-URLs der aktuellen Kategorie
             
             // Layout State
-            processedImages: [], 
-            streamBuffer: [], 
-
-            renderedCount: 0,
-            batchSize: 10,
+            processedImages: [],  // Liste der erfolgreich geladenen Bilder (für Lightbox)
+            renderedCount: 0,     // Wie viele Bilder haben wir schon ins DOM geworfen
+            
             lightboxIndex: 0,
             observer: null,
-            currentCategory: 'home',
+            resizeObserver: null,
             isLoading: false,
-            
-            gap: 12, 
-            idealHeight: 320, 
 
             init: function() {
                 if(!window.portfolioData || window.portfolioData.length === 0) {
@@ -243,16 +249,14 @@
                 document.getElementById('year').textContent = new Date().getFullYear();
 
                 this.setupNavigation();
-                this.setupObserver();
-                this.updateIdealHeight();
                 
-                let resizeTimer;
-                window.addEventListener('resize', () => {
-                    clearTimeout(resizeTimer);
-                    resizeTimer = setTimeout(() => {
-                        this.updateIdealHeight();
-                        this.reRender();
-                    }, 200);
+                // RESIZE OBSERVER:
+                // Wenn sich die Breite eines Grid-Items ändert (z.B. Fenster verkleinert),
+                // muss die Höhe (span) neu berechnet werden.
+                this.resizeObserver = new ResizeObserver(entries => {
+                    for (let entry of entries) {
+                        this.resizeGridItem(entry.target);
+                    }
                 });
 
                 this.filter('home'); 
@@ -263,16 +267,6 @@
                     if (e.key === 'ArrowRight') this.nextImage();
                     if (e.key === 'ArrowLeft') this.prevImage();
                 });
-            },
-
-            updateIdealHeight: function() {
-                if (window.innerWidth < 768) {
-                    this.idealHeight = 180; 
-                } else if (window.innerWidth < 1200) {
-                    this.idealHeight = 280; 
-                } else {
-                    this.idealHeight = 350; 
-                }
             },
 
             setupNavigation: function() {
@@ -297,261 +291,180 @@
                 return btn;
             },
 
-            filter: async function(catId) {
-                this.currentCategory = catId;
+            filter: function(catId) {
+                // Reset
                 this.renderedCount = 0;
-                this.isLoading = false;
                 this.processedImages = [];
-                this.streamBuffer = []; 
+                this.isLoading = false;
                 
-                document.getElementById('gallery-container').innerHTML = ''; 
+                const container = document.getElementById('gallery-container');
+                container.innerHTML = ''; 
                 window.scrollTo({top: 0, behavior: 'smooth'});
 
                 if (catId === 'home') {
-                    // Startseite
+                    // Alle Bilder sammeln
                     let allImages = this.data.flatMap(cat => 
                         cat.images.map(src => ({ src: src, title: this.formatTitle(src) }))
                     );
-                    
+                    // Shuffle
                     for (let i = allImages.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [allImages[i], allImages[j]] = [allImages[j], allImages[i]];
                     }
-
-                    const candidateImages = allImages.slice(0, 60);
-                    document.getElementById('loading-trigger').classList.add('opacity-100');
-
-                    const loadedCandidates = await Promise.all(candidateImages.map(item => this.preloadImage(item)));
-                    const validCandidates = loadedCandidates.filter(item => item !== null);
-                    
-                    this.processedImages = [...validCandidates];
-                    // Hier rendern wir 7 Reihen
-                    this.renderGeometry(validCandidates, true, 7); 
-                    
-                    document.getElementById('loading-trigger').classList.remove('opacity-100');
-                    if(this.observer) this.observer.disconnect();
-
+                    this.currentImages = allImages;
                 } else {
-                    // Kategorien
                     const category = this.data.find(c => c.id === catId);
-                    if(category) {
-                        this.currentImages = category.images.map(src => ({ src: src, title: this.formatTitle(src) }));
-                    } else {
-                        this.currentImages = [];
-                    }
-                    this.setupObserver();
-                    this.loadMore();
+                    this.currentImages = category ? category.images.map(src => ({ src: src, title: this.formatTitle(src) })) : [];
                 }
-            },
-            
-            preloadImage: function(imgObj) {
-                return new Promise((resolve) => {
-                    const img = new Image();
-                    img.src = imgObj.src;
-                    img.onload = () => {
-                        resolve({
-                            ...imgObj,
-                            width: img.naturalWidth,
-                            height: img.naturalHeight,
-                            ratio: img.naturalWidth / img.naturalHeight
-                        });
-                    };
-                    img.onerror = () => resolve(null);
-                });
+
+                this.setupObserver();
+                this.loadMore(); // Erste Charge laden
             },
 
-            reRender: function() {
-                if(this.processedImages.length === 0) return;
+            // Lädt den nächsten Schwung Bilder ins DOM
+            // WICHTIG: Wir warten NICHT auf den Download. Wir erstellen die Tags sofort.
+            loadMore: function() {
+                if(this.isLoading) return;
                 
-                document.getElementById('gallery-container').innerHTML = '';
-                
-                if (this.currentCategory === 'home') {
-                    this.renderGeometry(this.processedImages, true, 7);
-                } else {
-                    this.renderGeometry(this.processedImages, true);
-                }
-            },
-
-            loadMore: async function() {
-                if (this.isLoading || this.currentCategory === 'home') return;
-
                 const trigger = document.getElementById('loading-trigger');
-                
-                if (this.renderedCount >= this.currentImages.length) {
-                    if (this.streamBuffer.length > 0) {
-                        this.flushBuffer(true); 
-                    }
+                trigger.classList.add('opacity-100');
+                this.isLoading = true;
+
+                // Nimm die nächsten 15 Bilder
+                const batchSize = 15;
+                const batch = this.currentImages.slice(this.renderedCount, this.renderedCount + batchSize);
+
+                if (batch.length === 0) {
                     trigger.classList.remove('opacity-100');
+                    this.isLoading = false;
                     return;
                 }
 
-                this.isLoading = true;
-                trigger.classList.add('opacity-100');
-
-                const nextBatchRaw = this.currentImages.slice(this.renderedCount, this.renderedCount + this.batchSize);
-                const loadedBatch = await Promise.all(nextBatchRaw.map(item => this.preloadImage(item)));
-                const validBatch = loadedBatch.filter(item => item !== null);
-
-                this.processedImages = [...this.processedImages, ...validBatch];
-                this.streamBuffer = [...this.streamBuffer, ...validBatch];
-
-                this.processStreamBuffer();
-
-                this.renderedCount += nextBatchRaw.length;
-                this.isLoading = false;
-                
-                if (this.renderedCount >= this.currentImages.length) {
-                     this.processStreamBuffer(true);
-                     trigger.classList.remove('opacity-100');
-                } else {
-                    trigger.classList.remove('opacity-100');
-                }
-            },
-
-            processStreamBuffer: function(forceFlush = false) {
                 const container = document.getElementById('gallery-container');
-                const containerWidth = Math.floor(container.getBoundingClientRect().width);
-                
-                let startIndex = 0; 
-                let batchRowIndex = 0; // Zähler für Verzögerung in diesem Batch
 
-                while(startIndex < this.streamBuffer.length) {
-                    let rowAspectRatioSum = 0;
-                    let currentImages = [];
-                    let rowFound = false;
-
-                    for(let i = startIndex; i < this.streamBuffer.length; i++) {
-                        const img = this.streamBuffer[i];
-                        rowAspectRatioSum += img.ratio;
-                        currentImages.push(img);
-
-                        const totalGapWidth = (currentImages.length - 1) * this.gap;
-                        const availableWidth = containerWidth - totalGapWidth;
-                        const potentialHeight = availableWidth / rowAspectRatioSum;
+                batch.forEach((imgData) => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'img-item group';
+                    
+                    // Bild erstellen
+                    const img = new Image();
+                    img.className = 'gallery-img';
+                    img.alt = imgData.title;
+                    
+                    // EVENT: Wenn Bild fertig geladen ist -> Größe berechnen
+                    img.onload = () => {
+                        // Wild Look Logic: Ist es ein Panorama?
+                        const ratio = img.naturalWidth / img.naturalHeight;
                         
-                        if (potentialHeight < this.idealHeight) {
-                            // Reihe voll -> Rendern mit Delay
-                            this.renderRow(container, currentImages, potentialHeight, false, batchRowIndex);
-                            batchRowIndex++; // Nächste Reihe kriegt mehr Delay
-
-                            startIndex = i + 1;
-                            rowFound = true;
-                            break; 
+                        // Wenn extrem breit (> 1.6) ODER zufällig manchmal auch normale Querformate
+                        // ABER: keine Hochformat-Bilder strecken (sieht meist doof aus)
+                        if (ratio > 1.6) {
+                            itemDiv.classList.add('col-span-2');
+                        } 
+                        else if (ratio > 1.2 && Math.random() > 0.8) {
+                             // Zufälliges Highlight für normale Querformate
+                             itemDiv.classList.add('col-span-2');
                         }
-                    }
 
-                    if (!rowFound) {
-                        if (forceFlush) {
-                            const restImages = this.streamBuffer.slice(startIndex);
-                            if(restImages.length > 0) {
-                                this.renderRow(container, restImages, this.idealHeight, true, batchRowIndex);
-                            }
-                            startIndex = this.streamBuffer.length; 
-                        } else {
-                            break; 
-                        }
-                    }
-                }
-                this.streamBuffer = this.streamBuffer.slice(startIndex);
-            },
+                        // WICHTIG: Jetzt zum Array für Lightbox hinzufügen (in richtiger Reihenfolge schwierig, 
+                        // daher einfach Push. Die Reihenfolge in der Lightbox entspricht der Lade-Reihenfolge)
+                        // Besser: Wir hängen Daten ans DOM Element und lesen bei Klick aus.
+                        itemDiv.dataset.src = imgData.src;
+                        itemDiv.dataset.title = imgData.title;
 
-            renderGeometry: function(images, isRedraw = false, maxRows = 0) {
-                const container = document.getElementById('gallery-container');
-                const containerWidth = Math.floor(container.getBoundingClientRect().width);
-                
-                let rowBuffer = [];
-                let rowAspectRatioSum = 0;
-                let rowsCreated = 0;
-                
-                for (let i = 0; i < images.length; i++) {
-                    if (maxRows > 0 && rowsCreated >= maxRows) break;
+                        // Höhe berechnen
+                        this.resizeGridItem(itemDiv);
+                        
+                        // Fade In
+                        itemDiv.classList.add('loaded');
+                        
+                        // Überwachen für spätere Resizes (Fensteränderung)
+                        this.resizeObserver.observe(itemDiv);
+                    };
 
-                    const img = images[i];
-                    let actualIndex = isRedraw ? i : (this.processedImages.indexOf(img)); 
-                    if(actualIndex === -1) actualIndex = i; 
-
-                    const imgWithIndex = { ...img, globalIndex: actualIndex };
-
-                    rowBuffer.push(imgWithIndex);
-                    rowAspectRatioSum += img.ratio;
-
-                    const totalGapWidth = (rowBuffer.length - 1) * this.gap;
-                    const availableWidth = containerWidth - totalGapWidth;
-                    const potentialHeight = availableWidth / rowAspectRatioSum;
-
-                    if (potentialHeight <= this.idealHeight) {
-                        // Wir nutzen rowsCreated als Delay-Index für die Startseite (schöne Welle von oben nach unten)
-                        this.renderRow(container, rowBuffer, potentialHeight, false, rowsCreated);
-                        rowBuffer = [];
-                        rowAspectRatioSum = 0;
-                        rowsCreated++;
-                    }
-                }
-
-                if (maxRows > 0 && rowBuffer.length > 0 && rowsCreated < maxRows) {
-                     this.renderRow(container, rowBuffer, this.idealHeight, true, rowsCreated);
-                } else if (maxRows === 0 && rowBuffer.length > 0) {
-                    this.renderRow(container, rowBuffer, this.idealHeight, true, rowsCreated);
-                }
-            },
-
-            // NEU: Parameter delayIndex
-            renderRow: function(container, rowImages, rowHeight, isOrphan, delayIndex = 0) {
-                const rowDiv = document.createElement('div');
-                rowDiv.className = 'gallery-row';
-                
-                // STAGGERING: Wir verzögern jede Reihe um 100ms * Index
-                // Dadurch blenden sie nacheinander ein
-                rowDiv.style.animationDelay = (delayIndex * 150) + 'ms';
-                
-                if (isOrphan) {
-                    rowHeight = this.idealHeight; 
-                    rowDiv.style.justifyContent = 'flex-start';
-                }
-
-                rowDiv.style.height = Math.floor(rowHeight) + 'px';
-
-                rowImages.forEach(img => {
-                    const div = document.createElement('div');
-                    div.className = 'img-item group';
+                    // Fehlerbehandlung: Wenn Bild kaputt, Element löschen
+                    img.onerror = () => {
+                        itemDiv.remove();
+                    };
                     
-                    let idx = img.globalIndex;
-                    if (idx === undefined) {
-                        idx = this.processedImages.findIndex(p => p.src === img.src);
-                    }
-                    div.onclick = () => this.openLightbox(idx);
-                    
-                    const imgWidth = rowHeight * img.ratio;
-                    div.style.width = imgWidth + 'px'; 
-                    div.style.flexBasis = imgWidth + 'px';
+                    // Klick -> Lightbox
+                    itemDiv.onclick = () => {
+                        // Wir bauen die processedImages Liste dynamisch basierend auf dem DOM,
+                        // damit die Reihenfolge stimmt.
+                        this.updateProcessedImagesFromDOM();
+                        // Finde Index dieses Bildes
+                        const idx = this.processedImages.findIndex(p => p.src === imgData.src);
+                        this.openLightbox(idx);
+                    };
 
-                    const imageEl = new Image();
-                    imageEl.src = img.src;
-                    imageEl.alt = img.title;
-                    imageEl.className = 'gallery-img';
-                    imageEl.loading = 'lazy';
-                    
-                    div.appendChild(imageEl);
+                    img.src = imgData.src; // Start Loading
 
+                    itemDiv.appendChild(img);
+                    
+                    // Hover Overlay
                     const overlay = document.createElement('div');
                     overlay.className = "absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none";
-                    div.appendChild(overlay);
+                    itemDiv.appendChild(overlay);
 
-                    rowDiv.appendChild(div);
+                    container.appendChild(itemDiv);
                 });
 
-                container.appendChild(rowDiv);
+                this.renderedCount += batch.length;
+                
+                // Kurze Pause, damit der Observer nicht sofort wieder feuert
+                setTimeout(() => {
+                    this.isLoading = false;
+                    // Check ob wir schon am Ende sind
+                    if (this.renderedCount >= this.currentImages.length) {
+                        trigger.classList.remove('opacity-100');
+                        if(this.observer) this.observer.disconnect();
+                    }
+                }, 100);
             },
-            
+
+            // Die Magie: Berechnet wie viele 1px Zeilen das Item braucht
+            resizeGridItem: function(item) {
+                const grid = document.getElementsByClassName('gallery-grid')[0];
+                if(!grid) return;
+
+                const rowHeight = 1; // aus CSS grid-auto-rows
+                const rowGap = 0;    // aus CSS row-gap
+                
+                // Wir schauen uns das Bild im Item an
+                const img = item.querySelector('img');
+                if(!img) return;
+
+                // Tatsächliche Höhe im Browser (nach CSS Skalierung width:100%)
+                // Wir nutzen getBoundingClientRect für Sub-Pixel Genauigkeit
+                const contentHeight = img.getBoundingClientRect().height;
+                
+                // Da margin-bottom den Abstand macht, müssen wir den nicht in den Span einrechnen.
+                // Span = Bildhöhe / 1px.
+                const rowSpan = Math.ceil((contentHeight) / (rowHeight + rowGap));
+                
+                item.style.gridRowEnd = "span " + rowSpan;
+            },
+
+            updateProcessedImagesFromDOM: function() {
+                // Liest alle aktuell sichtbaren Bilder aus dem DOM in der richtigen Reihenfolge
+                const items = document.querySelectorAll('.img-item.loaded');
+                this.processedImages = Array.from(items).map(item => ({
+                    src: item.dataset.src,
+                    title: item.dataset.title
+                }));
+            },
+
             setupObserver: function() {
                 if(this.observer) this.observer.disconnect();
-                const options = { root: null, rootMargin: '400px', threshold: 0.1 };
+                const options = { root: null, rootMargin: '600px', threshold: 0.01 };
                 this.observer = new IntersectionObserver((entries) => {
                     if(entries[0].isIntersecting) {
                         this.loadMore();
                     }
                 }, options);
-                this.observer.observe(document.getElementById('loading-trigger'));
+                
+                const trigger = document.getElementById('loading-trigger');
+                if(trigger) this.observer.observe(trigger);
             },
 
             openLightbox: function(index) {

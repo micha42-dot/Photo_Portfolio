@@ -28,54 +28,69 @@
         }
     </script>
     <style>
+        /* Definition der Zeilenhöhe als Variable für einfache Anpassung */
+        :root {
+            --row-height: 35vh;
+        }
+        @media (max-width: 768px) {
+            :root {
+                --row-height: 25vh;
+            }
+        }
+
         /* Justified Flex Layout */
         .gallery-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px; /* Kleinerer Abstand für edleren Look */
+            gap: 12px; 
+        }
+
+        /* 
+           Trick für die letzte Zeile:
+           Ein unsichtbares Element nimmt den restlichen Platz ein, 
+           damit die letzten Bilder nicht riesig gezogen werden.
+        */
+        .gallery-container::after {
+            content: '';
+            flex-grow: 999999999;
+            min-width: 200px;
         }
 
         .img-container {
-            /* Das ist der Trick: Höhe ist fix, Breite ist flexibel */
-            height: 40vh; /* Start-Höhe für Desktop */
+            height: var(--row-height);
+            /* Standard: Quadratisch, wird via JS überschrieben */
+            width: var(--row-height); 
             flex-grow: 1;
-            min-width: 300px; /* Verhindert zu schmale Spalten */
-            
             position: relative;
             background-color: #f3f4f6;
             overflow: hidden;
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
         }
 
-        /* Mobile Anpassung: Kleinere Höhe, damit mehr aufs Bild passt */
-        @media (max-width: 768px) {
-            .img-container {
-                height: 25vh;
-                min-width: 150px;
-            }
+        .img-container.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
-        
-        /* Damit die letzte Zeile nicht über den ganzen Bildschirm gestreckt wird,
-           begrenzen wir die maximale Breite etwas oder akzeptieren den Look.
-           Bei Portfolio-Seiten sieht ein breites Bild am Ende oft gut aus. */
 
         .gallery-img {
-            opacity: 0;
-            width: 100%;
             height: 100%;
-            object-fit: cover; /* Füllt den Container, schneidet minimal zu wenn nötig */
-            transition: opacity 0.5s ease-in-out, transform 0.7s ease;
+            width: 100%;
+            /* 
+               Da der Container nun exakt das Seitenverhältnis des Bildes hat,
+               bedeutet 'cover' hier effektiv 'kein Crop'. 
+               Es füllt den Container pixelgenau aus.
+            */
+            object-fit: cover; 
             display: block;
-            /* Wichtig für Flexbox Layout Stabilität */
-            min-width: 100%; 
+            transition: transform 0.7s ease;
         }
 
-        /* Hover Effekt: Leichter Zoom */
+        /* Hover Effekt */
         .img-container:hover .gallery-img {
-            transform: scale(1.05);
-        }
-        
-        .gallery-img.loaded {
-            opacity: 1;
+            transform: scale(1.03);
         }
 
         /* Dropdown Animation */
@@ -108,7 +123,7 @@
     <header class="fixed top-0 w-full bg-white/95 backdrop-blur-md z-40 border-b border-gray-100 transition-all duration-300" id="main-header">
         <div class="max-w-[1800px] mx-auto px-6 h-12 flex items-center justify-between">
             
-            <!-- Logo (Klick führt zur Random Home View) -->
+            <!-- Logo -->
             <a href="#" onclick="app.filter('home')" class="font-display font-bold text-lg md:text-xl tracking-[0.15em] uppercase hover:opacity-60 transition-opacity">
                 Michael Förtsch
             </a>
@@ -161,7 +176,6 @@
     <!-- MAIN GALLERY -->
     <main class="flex-grow pt-24 pb-20 px-4 md:px-8 w-full max-w-[1800px] mx-auto">
         
-        <!-- Warnung falls keine Daten -->
         <div id="no-data-warning" class="hidden w-full max-w-2xl mx-auto text-center py-12 px-6 border border-yellow-200 bg-yellow-50 rounded-lg">
             <h3 class="text-yellow-800 font-bold mb-2">Galerie wird geladen...</h3>
             <p class="text-yellow-700 text-sm mb-4">Falls hier dauerhaft keine Bilder erscheinen:</p>
@@ -172,12 +186,11 @@
             </div>
         </div>
 
-        <!-- Container Class geändert auf gallery-container -->
         <div id="gallery-container" class="gallery-container">
             <!-- Bilder werden hier eingefügt -->
         </div>
         
-        <!-- Loading Sentinel / Status -->
+        <!-- Loading Sentinel -->
         <div id="loading-trigger" class="h-24 w-full flex items-center justify-center mt-12 opacity-0 transition-opacity">
             <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce mx-1"></div>
             <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce mx-1 delay-100"></div>
@@ -327,34 +340,55 @@
 
                 nextBatch.forEach((imgData, index) => {
                     const globalIndex = this.renderedCount + index;
+                    const safeSrc = imgData.src.split('/').map(s => encodeURIComponent(s)).join('/');
+                    
                     const div = document.createElement('div');
-                    // img-container Klasse übernimmt jetzt das Layout
                     div.className = 'img-container group cursor-pointer'; 
                     div.onclick = () => this.openLightbox(globalIndex);
 
-                    const safeSrc = imgData.src.split('/').map(s => encodeURIComponent(s)).join('/');
+                    // Image Element erstellen
+                    const img = new Image();
+                    img.src = safeSrc;
+                    img.alt = imgData.title;
+                    img.className = "gallery-img";
+                    img.loading = "lazy";
+                    img.decoding = "async";
 
-                    div.innerHTML = `
-                        <img 
-                            src="${safeSrc}" 
-                            alt="${imgData.title}" 
-                            class="gallery-img" 
-                            loading="lazy" 
-                            decoding="async"
-                            onload="this.classList.add('loaded')"
-                            onerror="this.parentElement.style.display='none'" 
-                        >
-                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none"></div>
-                    `;
+                    // LOGIK FÜR ORIGINAL-FORMAT:
+                    // Wir warten, bis das Bild Metadata hat (Width/Height)
+                    // Dann setzen wir flex-grow entsprechend der Aspect Ratio.
+                    img.onload = function() {
+                        const ar = this.naturalWidth / this.naturalHeight;
+                        // CSS-Variable für das Layout-Verhalten
+                        // Die Breite ergibt sich aus (Zeilenhöhe * AspectRatio)
+                        div.style.flexGrow = ar;
+                        div.style.width = `calc(var(--row-height) * ${ar})`; 
+                        div.classList.add('visible');
+                    }
+
+                    div.appendChild(img);
+                    
+                    // Hover Overlay
+                    const overlay = document.createElement('div');
+                    overlay.className = "absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none";
+                    div.appendChild(overlay);
+
                     fragment.appendChild(div);
                 });
 
+                container.appendChild(fragment);
+                this.renderedCount += nextBatch.length;
+                
+                // Kurze Pause damit DOM reflow nicht blockiert
                 setTimeout(() => {
-                    container.appendChild(fragment);
-                    this.renderedCount += nextBatch.length;
                     trigger.classList.remove('opacity-100');
                     this.isLoading = false;
-                }, 50);
+                    // Trigger observer erneut, falls Sentinel noch sichtbar
+                    // (Falls Zeile noch nicht voll ist)
+                    if (this.observer) {
+                        // Trick: disconnect/reconnect check
+                    }
+                }, 100);
             },
 
             setupObserver: function() {

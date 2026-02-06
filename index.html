@@ -28,68 +28,61 @@
         }
     </script>
     <style>
-        /* Definition der Zeilenhöhe als Variable für einfache Anpassung */
+        /* Basis-Konfiguration */
         :root {
-            --row-height: 35vh;
-        }
-        @media (max-width: 768px) {
-            :root {
-                --row-height: 25vh;
-            }
-        }
-
-        /* Justified Flex Layout */
-        .gallery-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px; 
+            --gap: 12px;
         }
 
         /* 
-           Trick für die letzte Zeile:
-           Ein unsichtbares Element nimmt den restlichen Platz ein, 
-           damit die letzten Bilder nicht riesig gezogen werden.
+           NEUES LAYOUT SYSTEM
+           Wir nutzen keine Flex-Wraps im Hauptcontainer mehr.
+           Jede Zeile (.gallery-row) ist ein eigener Flex-Container.
         */
-        .gallery-container::after {
-            content: '';
-            flex-grow: 999999999;
-            min-width: 200px;
+        .gallery-container {
+            display: flex;
+            flex-direction: column;
+            gap: var(--gap);
+            width: 100%;
+            overflow: hidden; /* Verhindert horizontalen Scrollbalken bei Rundungsfehlern */
         }
 
-        .img-container {
-            height: var(--row-height);
-            /* Wichtig: Basis-Breite auf auto setzen, JS regelt flex-basis */
-            width: auto; 
-            flex-grow: 1;
+        .gallery-row {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            width: 100%;
+            gap: var(--gap);
+            /* Höhe wird inline via JS gesetzt */
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        @keyframes fadeUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .img-item {
             position: relative;
             background-color: #f3f4f6;
-            overflow: hidden;
             cursor: pointer;
-            opacity: 0;
-            transform: translateY(10px);
-            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-        }
-
-        .img-container.visible {
-            opacity: 1;
-            transform: translateY(0);
+            overflow: hidden;
+            /* Flex-Werte verhindern das Kollabieren */
+            flex-shrink: 0; 
         }
 
         .gallery-img {
             height: 100%;
             width: 100%;
-            /* 
-               Cover sorgt dafür, dass keine weißen Blitzer entstehen, 
-               wenn Flexbox das Bild um wenige Pixel streckt um die Zeile zu füllen.
-               Da der Container nun via JS exakt berechnet wird, ist der Crop minimalst.
-            */
-            object-fit: cover; 
             display: block;
             transition: transform 0.7s ease;
+            /* Da wir die Box exakt berechnen, brauchen wir kein object-fit: cover mehr zwingend, 
+               aber es dient als Sicherheitsnetz für Sub-Pixel-Rundungen */
+            object-fit: cover; 
         }
 
         /* Hover Effekt */
-        .img-container:hover .gallery-img {
+        .img-item:hover .gallery-img {
             transform: scale(1.03);
         }
 
@@ -238,13 +231,20 @@
     <script>
         const app = {
             data: [],
-            currentImages: [],
+            currentImages: [], // Liste der URLs
+            processedImages: [], // Liste der Objekte mit {src, width, height, ratio}
+            
+            // State
             renderedCount: 0,
             batchSize: 10,
             lightboxIndex: 0,
             observer: null,
             currentCategory: 'home',
             isLoading: false,
+            
+            // Geometry Config
+            gap: 12, // px (muss mit CSS matchen)
+            idealHeight: 320, // Zielhöhe für Zeilen (wird je nach Screen angepasst)
 
             init: function() {
                 if(!window.portfolioData || window.portfolioData.length === 0) {
@@ -258,6 +258,18 @@
 
                 this.setupNavigation();
                 this.setupObserver();
+                this.updateIdealHeight();
+                
+                // Debounce Resize Handler um Layout neu zu berechnen
+                let resizeTimer;
+                window.addEventListener('resize', () => {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(() => {
+                        this.updateIdealHeight();
+                        this.reRender();
+                    }, 200);
+                });
+
                 this.filter('home'); 
                 
                 document.addEventListener('keydown', (e) => {
@@ -266,6 +278,16 @@
                     if (e.key === 'ArrowRight') this.nextImage();
                     if (e.key === 'ArrowLeft') this.prevImage();
                 });
+            },
+
+            updateIdealHeight: function() {
+                if (window.innerWidth < 768) {
+                    this.idealHeight = 180; // Mobile: Kleinere Zielhöhe
+                } else if (window.innerWidth < 1200) {
+                    this.idealHeight = 260; // Tablet
+                } else {
+                    this.idealHeight = 350; // Desktop
+                }
             },
 
             setupNavigation: function() {
@@ -296,6 +318,7 @@
                 this.currentCategory = catId;
                 this.renderedCount = 0;
                 this.isLoading = false;
+                this.processedImages = [];
                 document.getElementById('gallery-container').innerHTML = ''; 
                 
                 window.scrollTo({top: 0, behavior: 'smooth'});
@@ -310,8 +333,7 @@
                         const j = Math.floor(Math.random() * (i + 1));
                         [allImages[i], allImages[j]] = [allImages[j], allImages[i]];
                     }
-                    // LIMIT: Exakt 35 Bilder für die Startseite (ca. 7-8 Reihen à ~4-5 Bilder)
-                    // Kein Infinite Scroll auf der Startseite erwünscht.
+                    // Limit Startseite: 35 Bilder (für ca. 7-8 Reihen)
                     this.currentImages = allImages.slice(0, 35);
                 } else {
                     const category = this.data.find(c => c.id === catId);
@@ -323,11 +345,37 @@
                 }
                 this.loadMore();
             },
+            
+            // Lädt Bilder-Metadaten vor, um Layout zu berechnen
+            preloadImage: function(imgObj) {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.src = imgObj.src;
+                    img.onload = () => {
+                        resolve({
+                            ...imgObj,
+                            width: img.naturalWidth,
+                            height: img.naturalHeight,
+                            ratio: img.naturalWidth / img.naturalHeight
+                        });
+                    };
+                    img.onerror = () => {
+                        // Bei Fehler überspringen wir das Bild (oder Fallback 1:1)
+                        resolve(null);
+                    };
+                });
+            },
 
-            loadMore: function() {
+            reRender: function() {
+                // Bei Resize bauen wir das vorhandene Array neu auf, ohne neu zu laden
+                if(this.processedImages.length === 0) return;
+                document.getElementById('gallery-container').innerHTML = '';
+                this.renderGeometry(this.processedImages, true); // true = redraw all
+            },
+
+            loadMore: async function() {
                 if (this.isLoading) return;
 
-                const container = document.getElementById('gallery-container');
                 const trigger = document.getElementById('loading-trigger');
                 
                 if (this.renderedCount >= this.currentImages.length) {
@@ -338,57 +386,133 @@
                 this.isLoading = true;
                 trigger.classList.add('opacity-100');
 
-                // Auf der Startseite laden wir sofort alle 35, da die Menge dort fixiert ist.
-                // In Kategorien laden wir Batch-weise (Infinite Scroll).
+                // Auf Home alles auf einmal laden (35), sonst Batch
                 let currentBatchSize = (this.currentCategory === 'home') ? 35 : this.batchSize;
+                const nextBatchRaw = this.currentImages.slice(this.renderedCount, this.renderedCount + currentBatchSize);
+
+                // 1. Bilder vorladen um Dimensionen zu bekommen
+                const loadedBatch = await Promise.all(nextBatchRaw.map(item => this.preloadImage(item)));
                 
-                const nextBatch = this.currentImages.slice(this.renderedCount, this.renderedCount + currentBatchSize);
-                const fragment = document.createDocumentFragment();
+                // Null-Werte filtern (Fehlerhafte Bilder)
+                const validBatch = loadedBatch.filter(item => item !== null);
 
-                nextBatch.forEach((imgData, index) => {
-                    const globalIndex = this.renderedCount + index;
-                    const safeSrc = imgData.src.split('/').map(s => encodeURIComponent(s)).join('/');
+                // Zu verarbeiteten Bildern hinzufügen
+                this.processedImages = [...this.processedImages, ...validBatch];
+                
+                // 2. Geometrie berechnen und rendern
+                // Wir rendern nur den NEUEN Teil, außer beim Resize
+                this.renderGeometry(validBatch, false);
+
+                this.renderedCount += nextBatchRaw.length;
+                
+                this.isLoading = false;
+                trigger.classList.remove('opacity-100');
+            },
+
+            // Der Kern des Justified Layouts
+            renderGeometry: function(imagesToRender, isRedraw = false) {
+                const container = document.getElementById('gallery-container');
+                const containerWidth = container.clientWidth;
+                
+                // Buffer für die aktuelle Zeile
+                let rowBuffer = [];
+                let rowAspectRatioSum = 0;
+
+                // Wenn wir nicht alles neu zeichnen, müssen wir wissen, wo wir im Gesamtindex stehen für Lightbox
+                let startIndex = isRedraw ? 0 : (this.processedImages.length - imagesToRender.length);
+
+                imagesToRender.forEach((img, index) => {
+                    const globalIndex = startIndex + index;
                     
-                    const div = document.createElement('div');
-                    div.className = 'img-container group cursor-pointer'; 
-                    div.onclick = () => this.openLightbox(globalIndex);
+                    // Bild zur Zeile hinzufügen
+                    rowBuffer.push({ ...img, globalIndex });
+                    rowAspectRatioSum += img.ratio;
 
-                    const img = new Image();
-                    img.src = safeSrc;
-                    img.alt = imgData.title;
-                    img.className = "gallery-img";
-                    img.loading = "lazy";
-                    img.decoding = "async";
+                    // Berechnete Breite der Zeile bei idealHeight
+                    // Breite = Summe(Ratios) * Höhe + (AnzahlLücken * Lücke)
+                    const currentWidth = (rowAspectRatioSum * this.idealHeight) + ((rowBuffer.length - 1) * this.gap);
 
-                    img.onload = function() {
-                        const ar = this.naturalWidth / this.naturalHeight;
-                        
-                        // Das ist der Schlüssel zum verlustfreien Layout:
-                        // Wir sagen Flexbox: "Nimm exakt so viel Platz (Basis), wie das Bild bei gegebener Höhe braucht."
-                        // flex-grow: ar sorgt dann dafür, dass der Restplatz in der Zeile proportional verteilt wird.
-                        div.style.flexGrow = ar;
-                        div.style.flexBasis = `calc(var(--row-height) * ${ar})`; 
-                        div.style.width = `calc(var(--row-height) * ${ar})`; 
-                        
-                        div.classList.add('visible');
+                    // Wenn Zeile voll ist (oder breiter als Container)
+                    if (currentWidth >= containerWidth) {
+                        this.flushRow(container, rowBuffer, rowAspectRatioSum, containerWidth);
+                        // Buffer leeren
+                        rowBuffer = [];
+                        rowAspectRatioSum = 0;
                     }
+                });
 
-                    div.appendChild(img);
+                // Letzte Zeile verarbeiten (orphan handling)
+                // Auf der Startseite wollen wir sie möglichst füllen, aber nicht extrem verzerren.
+                if (rowBuffer.length > 0) {
+                    // Option: Letzte Zeile linksbündig lassen mit idealHeight?
+                    // Oder erzwingen zu füllen? 
+                    // Standard Flickr-Style: Links lassen, wenn sie nicht fast voll ist.
+                    // Wir füllen sie nur auf, wenn sie mind. 75% der Breite hat, sonst linksbündig.
                     
+                    // Testbreite berechnen
+                    const testWidth = (rowAspectRatioSum * this.idealHeight) + ((rowBuffer.length - 1) * this.gap);
+                    
+                    if (testWidth > containerWidth * 0.75) {
+                         // Fast voll -> Füllen
+                         this.flushRow(container, rowBuffer, rowAspectRatioSum, containerWidth);
+                    } else {
+                        // Zu leer -> Linksbündig rendern mit idealHeight
+                        this.flushRow(container, rowBuffer, rowAspectRatioSum, containerWidth, true);
+                    }
+                }
+            },
+
+            flushRow: function(container, rowImages, totalRatio, containerWidth, isOrphan = false) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'gallery-row';
+                
+                // Verfügbare Breite für Bilder (Container - Lücken)
+                const totalGapWidth = (rowImages.length - 1) * this.gap;
+                const availableWidthForImages = containerWidth - totalGapWidth;
+
+                // Exakte Höhe berechnen: Höhe = Breite / SummeRatios
+                let rowHeight = availableWidthForImages / totalRatio;
+
+                // Falls es eine Orphan-Row ist (letzte Zeile), Höhe begrenzen
+                if (isOrphan) {
+                    rowHeight = this.idealHeight;
+                    // Wir müssen hier ein Dummy-Element einfügen oder justify-content start nutzen,
+                    // aber da wir widths setzen, reicht justify-content: flex-start im CSS eigentlich nicht,
+                    // da wir width in % oder px berechnen.
+                    rowDiv.style.justifyContent = 'flex-start';
+                }
+
+                // Style setzen
+                rowDiv.style.height = rowHeight + 'px';
+
+                rowImages.forEach(img => {
+                    const div = document.createElement('div');
+                    div.className = 'img-item group';
+                    div.onclick = () => this.openLightbox(img.globalIndex);
+                    
+                    // Breite berechnen
+                    // width = height * ratio
+                    const imgWidth = rowHeight * img.ratio;
+                    div.style.width = imgWidth + 'px';
+                    div.style.height = rowHeight + 'px'; // Explizit setzen
+
+                    const imageEl = new Image();
+                    imageEl.src = img.src;
+                    imageEl.alt = img.title;
+                    imageEl.className = 'gallery-img';
+                    imageEl.loading = 'lazy';
+                    
+                    div.appendChild(imageEl);
+
+                    // Overlay
                     const overlay = document.createElement('div');
                     overlay.className = "absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none";
                     div.appendChild(overlay);
 
-                    fragment.appendChild(div);
+                    rowDiv.appendChild(div);
                 });
 
-                container.appendChild(fragment);
-                this.renderedCount += nextBatch.length;
-                
-                setTimeout(() => {
-                    trigger.classList.remove('opacity-100');
-                    this.isLoading = false;
-                }, 100);
+                container.appendChild(rowDiv);
             },
 
             setupObserver: function() {
@@ -402,6 +526,9 @@
             },
 
             openLightbox: function(index) {
+                // Suchen im processedImages Array, da dieses die Quelle der Wahrheit für gerenderte Bilder ist
+                if (index < 0 || index >= this.processedImages.length) return;
+
                 this.lightboxIndex = index;
                 this.updateLightbox();
                 const lb = document.getElementById('lightbox');
@@ -417,7 +544,7 @@
             },
 
             updateLightbox: function() {
-                const data = this.currentImages[this.lightboxIndex];
+                const data = this.processedImages[this.lightboxIndex];
                 if(!data) return;
                 
                 const img = document.getElementById('lightbox-img');
@@ -430,12 +557,12 @@
             },
 
             nextImage: function() {
-                this.lightboxIndex = (this.lightboxIndex + 1) % this.currentImages.length;
+                this.lightboxIndex = (this.lightboxIndex + 1) % this.processedImages.length;
                 this.updateLightbox();
             },
 
             prevImage: function() {
-                this.lightboxIndex = (this.lightboxIndex - 1 + this.currentImages.length) % this.currentImages.length;
+                this.lightboxIndex = (this.lightboxIndex - 1 + this.processedImages.length) % this.processedImages.length;
                 this.updateLightbox();
             },
 

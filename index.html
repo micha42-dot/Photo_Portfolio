@@ -28,30 +28,50 @@
         }
     </script>
     <style>
-        /* CSS Columns für echtes Masonry ohne Lücken */
-        .masonry-layout {
-            column-count: 1;
-            column-gap: 1.5rem;
+        /* Justified Flex Layout */
+        .gallery-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px; /* Kleinerer Abstand für edleren Look */
         }
-        @media (min-width: 640px) { .masonry-layout { column-count: 2; } }
-        @media (min-width: 1024px) { .masonry-layout { column-count: 3; } }
 
-        /* Wichtig: break-inside-avoid verhindert, dass Bilder in der Mitte zerschnitten werden */
         .img-container {
-            break-inside: avoid; 
-            margin-bottom: 1.5rem;
-            background-color: #f3f4f6;
+            /* Das ist der Trick: Höhe ist fix, Breite ist flexibel */
+            height: 40vh; /* Start-Höhe für Desktop */
+            flex-grow: 1;
+            min-width: 300px; /* Verhindert zu schmale Spalten */
+            
             position: relative;
-            /* Kein overflow:hidden hier, sonst schneidet es manchmal Schatten ab, aber okay für saubere Kanten */
-            overflow: hidden; 
+            background-color: #f3f4f6;
+            overflow: hidden;
+        }
+
+        /* Mobile Anpassung: Kleinere Höhe, damit mehr aufs Bild passt */
+        @media (max-width: 768px) {
+            .img-container {
+                height: 25vh;
+                min-width: 150px;
+            }
         }
         
+        /* Damit die letzte Zeile nicht über den ganzen Bildschirm gestreckt wird,
+           begrenzen wir die maximale Breite etwas oder akzeptieren den Look.
+           Bei Portfolio-Seiten sieht ein breites Bild am Ende oft gut aus. */
+
         .gallery-img {
             opacity: 0;
-            transition: opacity 0.5s ease-in-out;
             width: 100%;
-            height: auto;
+            height: 100%;
+            object-fit: cover; /* Füllt den Container, schneidet minimal zu wenn nötig */
+            transition: opacity 0.5s ease-in-out, transform 0.7s ease;
             display: block;
+            /* Wichtig für Flexbox Layout Stabilität */
+            min-width: 100%; 
+        }
+
+        /* Hover Effekt: Leichter Zoom */
+        .img-container:hover .gallery-img {
+            transform: scale(1.05);
         }
         
         .gallery-img.loaded {
@@ -152,7 +172,8 @@
             </div>
         </div>
 
-        <div id="gallery-container" class="masonry-layout">
+        <!-- Container Class geändert auf gallery-container -->
+        <div id="gallery-container" class="gallery-container">
             <!-- Bilder werden hier eingefügt -->
         </div>
         
@@ -206,14 +227,13 @@
             data: [],
             currentImages: [],
             renderedCount: 0,
-            batchSize: 10, // Kleinerer Batch, damit Masonry sich schneller aufbaut
+            batchSize: 10,
             lightboxIndex: 0,
             observer: null,
             currentCategory: 'home',
             isLoading: false,
 
             init: function() {
-                // Check if data loaded
                 if(!window.portfolioData || window.portfolioData.length === 0) {
                     console.warn("data.js ist leer oder fehlt.");
                     document.getElementById('no-data-warning').classList.remove('hidden');
@@ -225,8 +245,6 @@
 
                 this.setupNavigation();
                 this.setupObserver();
-                
-                // Startseite: Random Mix
                 this.filter('home'); 
                 
                 document.addEventListener('keydown', (e) => {
@@ -240,21 +258,16 @@
             setupNavigation: function() {
                 const dropContainer = document.getElementById('desktop-dropdown-items');
                 const mobNav = document.getElementById('mobile-nav-items');
-                
-                // Wir fügen "Alle" NICHT zum Menü hinzu, wie gewünscht.
-                // Nur die spezifischen Kategorien.
 
                 this.data.forEach(cat => {
-                    if(cat.id === 'general') return; // "Allgemein" ggf. überspringen wenn man will, hier lassen wir es mal weg wenn es nicht explizit gewünscht ist, oder wir zeigen es an.
+                    if(cat.id === 'general') return;
                     
-                    // Dropdown Item
                     const dropBtn = document.createElement('button');
                     dropBtn.textContent = cat.label;
                     dropBtn.className = "text-left w-full px-4 py-2 text-xs font-display font-medium tracking-widest uppercase text-gray-500 hover:bg-gray-50 hover:text-black transition-colors";
                     dropBtn.onclick = () => this.filter(cat.id);
                     dropContainer.appendChild(dropBtn);
 
-                    // Mobile Item
                     mobNav.appendChild(this.createMobileLink(cat.id, cat.label));
                 });
             },
@@ -269,28 +282,21 @@
             filter: function(catId) {
                 this.currentCategory = catId;
                 this.renderedCount = 0;
-                this.isLoading = false; // Reset lock
+                this.isLoading = false;
                 document.getElementById('gallery-container').innerHTML = ''; 
                 
                 window.scrollTo({top: 0, behavior: 'smooth'});
 
                 if (catId === 'home') {
-                    // Logic: Nimm ALLE Bilder, shuffle sie, nimm die ersten 25
                     const allImages = this.data.flatMap(cat => 
                         cat.images.map(src => ({ src: src, title: this.formatTitle(src) }))
                     );
-                    
-                    // Fisher-Yates Shuffle
                     for (let i = allImages.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [allImages[i], allImages[j]] = [allImages[j], allImages[i]];
                     }
-
                     this.currentImages = allImages.slice(0, 25);
-                    console.log("Home View: 25 Random Bilder geladen.");
-
                 } else {
-                    // Logic: Zeige alle Bilder der Kategorie
                     const category = this.data.find(c => c.id === catId);
                     if(category) {
                         this.currentImages = category.images.map(src => ({ src: src, title: this.formatTitle(src) }));
@@ -298,12 +304,10 @@
                         this.currentImages = [];
                     }
                 }
-                
                 this.loadMore();
             },
 
             loadMore: function() {
-                // Prevent duplicate calls while processing (Fix for duplicate images)
                 if (this.isLoading) return;
 
                 const container = document.getElementById('gallery-container');
@@ -317,16 +321,15 @@
                 this.isLoading = true;
                 trigger.classList.add('opacity-100');
 
-                // Lade alles auf einmal wenn es "home" ist (sind nur 25), oder in Batches wenn es eine Kategorie ist
                 const batchCount = (this.currentCategory === 'home') ? 25 : this.batchSize;
-                
                 const nextBatch = this.currentImages.slice(this.renderedCount, this.renderedCount + batchCount);
                 const fragment = document.createDocumentFragment();
 
                 nextBatch.forEach((imgData, index) => {
                     const globalIndex = this.renderedCount + index;
                     const div = document.createElement('div');
-                    div.className = 'img-container group cursor-pointer';
+                    // img-container Klasse übernimmt jetzt das Layout
+                    div.className = 'img-container group cursor-pointer'; 
                     div.onclick = () => this.openLightbox(globalIndex);
 
                     const safeSrc = imgData.src.split('/').map(s => encodeURIComponent(s)).join('/');
@@ -343,16 +346,14 @@
                         >
                         <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none"></div>
                     `;
-                    // Bei Error verstecken wir das Bild im Masonry Layout einfach komplett (display: none), damit keine Lücke entsteht.
                     fragment.appendChild(div);
                 });
 
-                // Kleines Timeout um dem Browser Zeit für Layout Reflow zu geben
                 setTimeout(() => {
                     container.appendChild(fragment);
                     this.renderedCount += nextBatch.length;
                     trigger.classList.remove('opacity-100');
-                    this.isLoading = false; // Release lock
+                    this.isLoading = false;
                 }, 50);
             },
 
@@ -387,13 +388,10 @@
                 
                 const img = document.getElementById('lightbox-img');
                 const caption = document.getElementById('lightbox-caption');
-                
                 const safeSrc = data.src.split('/').map(s => encodeURIComponent(s)).join('/');
-                
                 const tempImg = new Image();
                 tempImg.onload = () => { img.src = tempImg.src; };
                 tempImg.src = safeSrc;
-                
                 caption.textContent = data.title;
             },
 

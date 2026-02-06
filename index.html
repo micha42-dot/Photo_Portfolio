@@ -29,50 +29,44 @@
     </script>
     <style>
         :root {
-            --gap: 24px; /* Etwas mehr Luft für den Galerie-Look */
+            --gap: 24px;
         }
 
         .gallery-grid {
             display: grid;
-            /* 
-               Min 320px Spalten. 
-               Das Grid passt sich automatisch an.
-            */
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             
-            /* 
-               TRICK: Wir setzen die Zeilenhöhe auf 1px.
-               Dadurch können wir per JS pixelgenau sagen, wie hoch ein Bild sein muss.
-            */
+            /* WICHTIG: row-gap MUSS 0 sein bei 1px rows, sonst explodiert die Höhe */
             grid-auto-rows: 1px; 
-            gap: var(--gap);
+            column-gap: var(--gap);
+            row-gap: 0; 
+            
             width: 100%;
             padding-bottom: 80px;
-            /* Dense sorgt dafür, dass kleine Bilder Lücken füllen, die große hinterlassen */
             grid-auto-flow: dense; 
         }
 
-        /* Mobile: Alles untereinander, volle Breite */
         @media (max-width: 640px) {
             .gallery-grid {
                 grid-template-columns: 1fr;
                 display: flex;
                 flex-direction: column;
-                gap: 32px; /* Mehr Abstand auf Mobile */
+                gap: 32px; 
             }
         }
 
         .img-item {
             position: relative;
-            background-color: #f3f4f6; /* Platzhalterfarbe während Laden */
+            background-color: #f3f4f6;
             cursor: pointer;
             overflow: hidden;
             opacity: 0;
             transform: translateY(30px);
             transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-            margin-bottom: 0; /* Margin wird durch Grid Gap erledigt */
             
-            /* Wichtig: Das Item selbst muss sich der Grid-Zelle anpassen */
+            /* Abstand nach unten manuell, da row-gap 0 ist */
+            margin-bottom: var(--gap);
+            
             width: 100%;
         }
 
@@ -81,7 +75,7 @@
             transform: translateY(0);
         }
 
-        /* Span Klassen für Desktop */
+        /* Desktop Spanning */
         @media (min-width: 641px) {
             .col-span-2 {
                 grid-column: span 2;
@@ -91,13 +85,13 @@
         .gallery-img {
             display: block;
             width: 100%;
-            height: auto; /* WICHTIG: Height auto erhält die Proportion */
-            transition: transform 0.8s ease;
+            height: auto; 
             will-change: transform;
+            transition: transform 0.7s ease;
         }
 
         .img-item:hover .gallery-img {
-            transform: scale(1.03);
+            transform: scale(1.02);
         }
 
         .dropdown-menu {
@@ -235,12 +229,12 @@
         const app = {
             data: [],
             currentImages: [], 
-            processedImages: [], // Für Lightbox
+            processedImages: [], 
             renderedCount: 0, 
             loadId: 0, 
             lightboxIndex: 0,
             observer: null,
-            resizeTimeout: null,
+            resizeObserver: null,
 
             init: function() {
                 if(!window.portfolioData || window.portfolioData.length === 0) {
@@ -254,18 +248,20 @@
 
                 this.setupNavigation();
                 
-                // Init load
+                // Wir nutzen einen ResizeObserver für Container-Breiten Änderungen, 
+                // das ist performanter als window.resize und fängt auch CSS-Änderungen ab.
+                this.resizeObserver = new ResizeObserver(entries => {
+                    // Debounce leicht
+                    window.requestAnimationFrame(() => {
+                        this.layoutAllItems();
+                    });
+                });
+                
+                const container = document.getElementById('gallery-container');
+                if(container) this.resizeObserver.observe(container);
+
                 this.filter('home'); 
                 
-                // Resize Handler: Wenn sich die Fensterbreite ändert, 
-                // ändern sich die Spaltenbreiten. Wir müssen die Höhen neu berechnen.
-                window.addEventListener('resize', () => {
-                    clearTimeout(this.resizeTimeout);
-                    this.resizeTimeout = setTimeout(() => {
-                        this.layoutAllItems();
-                    }, 100);
-                });
-
                 document.addEventListener('keydown', (e) => {
                     if (document.getElementById('lightbox').classList.contains('opacity-0')) return;
                     if (e.key === 'Escape') this.closeLightbox();
@@ -311,7 +307,7 @@
                     let allImages = this.data.flatMap(cat => 
                         cat.images.map(src => ({ src: src, title: this.formatTitle(src) }))
                     );
-                    // Shuffle
+                    // Shuffle (Fisher-Yates)
                     for (let i = allImages.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [allImages[i], allImages[j]] = [allImages[j], allImages[i]];
@@ -322,7 +318,7 @@
                     this.currentImages = category ? category.images.map(src => ({ src: src, title: this.formatTitle(src) })) : [];
                 }
 
-                await this.loadBatch(myLoadId, 50);
+                await this.loadBatch(myLoadId, 40);
                 
                 this.setupObserver();
             },
@@ -371,7 +367,6 @@
                     let classes = 'img-item group';
 
                     // === WILD GRID LOGIK ===
-                    // Entscheiden, ob ein Bild 2 Spalten einnimmt.
                     const ratio = imgData.ratio;
                     
                     let span2 = false;
@@ -379,24 +374,20 @@
                     if (ratio > 1.6) {
                         span2 = true;
                     } 
-                    // Zufällige "Feature" Bilder (wenn Bild nicht zu hochformatig ist)
-                    // Wir wollen keine extremen vertikalen Bilder noch weiter strecken, sonst werden sie riesig.
-                    // Also: Nur Bilder mit Ratio > 0.8 zufällig vergrößern.
+                    // Zufällige "Feature" Bilder 
+                    // (Wenn nicht zu hochformatig, um Riesentürme zu vermeiden)
                     else if (Math.random() > 0.85 && ratio > 0.8) {
                         span2 = true;
                     }
 
                     if (span2) {
                         classes += ' col-span-2';
-                        // Markierung für den Layout-Rechner
                         div.dataset.span = "2"; 
                     } else {
                         div.dataset.span = "1";
                     }
 
-                    // Ratio speichern für Neuberechnung bei Resize
                     div.dataset.ratio = ratio;
-
                     div.className = classes;
                     div.onclick = () => this.openLightbox(globalIdx);
 
@@ -413,7 +404,7 @@
 
                     container.appendChild(div);
 
-                    // Einmaliges initiales Layout für dieses Item berechnen
+                    // Initial Layout direkt anwenden
                     this.layoutItem(div);
 
                     requestAnimationFrame(() => {
@@ -425,29 +416,22 @@
                 trigger.classList.remove('opacity-100');
             },
 
-            // Berechnet die exakte Höhe (Row Span) eines einzelnen Items
-            // basierend auf der aktuellen Breite im Grid.
+            // Berechnet exakte Höhe in Grid-Zeilen (Pixel)
             layoutItem: function(item) {
                 const ratio = parseFloat(item.dataset.ratio);
-                // Aktuelle Breite im DOM messen
                 const width = item.getBoundingClientRect().width;
                 
-                if(width === 0) return; // Noch nicht sichtbar/gerendert
+                if(!width) return;
 
-                // Höhe berechnen basierend auf Original-Ratio
+                // Höhe = Breite / Seitenverhältnis
                 const height = width / ratio;
                 
-                // Da wir grid-auto-rows: 1px haben, entspricht die Höhe (plus kleiner Puffer für Gap-Ausgleich)
-                // direkt dem Span-Wert. 
-                // Grid Gap (var(--gap)) wird vom Browser *zwischen* den Tracks hinzugefügt.
-                // Ein Item, das 300px hoch ist, braucht ca span 300.
-                // Manche Browser runden minimal anders, daher Math.ceil.
-                
+                // Da row-height = 1px und row-gap = 0px:
+                // Grid Span ist gleich der Höhe in Pixeln.
                 const span = Math.ceil(height);
                 item.style.gridRowEnd = `span ${span}`;
             },
 
-            // Alle Items neu berechnen (bei Resize)
             layoutAllItems: function() {
                 const items = document.querySelectorAll('.img-item');
                 items.forEach(item => this.layoutItem(item));

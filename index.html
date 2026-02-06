@@ -45,13 +45,16 @@
         .gallery-row {
             display: flex;
             flex-direction: row;
-            /* CRITICAL: Wir erlauben kein Wrap, JS berechnet exakt */
             flex-wrap: nowrap; 
             justify-content: space-between;
             width: 100%;
             gap: var(--gap);
+            
+            /* Startzustand unsichtbar */
             opacity: 0;
-            transform: translateY(20px);
+            transform: translateY(30px);
+            
+            /* Animation */
             animation: fadeUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
         }
 
@@ -64,7 +67,6 @@
             background-color: #f3f4f6;
             cursor: pointer;
             overflow: hidden;
-            /* Flex properties für Stabilität */
             flex-shrink: 1; 
             flex-grow: 1; 
         }
@@ -74,7 +76,6 @@
             width: 100%;
             display: block;
             transition: transform 0.7s ease;
-            /* Erlaubt leichten Crop (bis 5% wie gewünscht), um Pixel-Lücken zu schließen */
             object-fit: cover; 
         }
 
@@ -215,11 +216,11 @@
     <script>
         const app = {
             data: [],
-            currentImages: [], // Liste aller URLs der aktuellen Kategorie
+            currentImages: [], 
             
             // Layout State
-            processedImages: [], // Alle Bilder, die bereits erfolgreich verarbeitet/geladen wurden
-            streamBuffer: [], // NEU: Puffer für Bilder, die noch in keiner vollen Reihe sind
+            processedImages: [], 
+            streamBuffer: [], 
 
             renderedCount: 0,
             batchSize: 10,
@@ -301,13 +302,13 @@
                 this.renderedCount = 0;
                 this.isLoading = false;
                 this.processedImages = [];
-                this.streamBuffer = []; // Puffer leeren
+                this.streamBuffer = []; 
                 
                 document.getElementById('gallery-container').innerHTML = ''; 
                 window.scrollTo({top: 0, behavior: 'smooth'});
 
                 if (catId === 'home') {
-                    // Startseite: 7 Reihen fixe Logik
+                    // Startseite
                     let allImages = this.data.flatMap(cat => 
                         cat.images.map(src => ({ src: src, title: this.formatTitle(src) }))
                     );
@@ -323,15 +324,15 @@
                     const loadedCandidates = await Promise.all(candidateImages.map(item => this.preloadImage(item)));
                     const validCandidates = loadedCandidates.filter(item => item !== null);
                     
-                    // Home benutzt den "strict" Mode mit maxRows
                     this.processedImages = [...validCandidates];
+                    // Hier rendern wir 7 Reihen
                     this.renderGeometry(validCandidates, true, 7); 
                     
                     document.getElementById('loading-trigger').classList.remove('opacity-100');
                     if(this.observer) this.observer.disconnect();
 
                 } else {
-                    // Kategorien: Infinite Scroll mit Puffer
+                    // Kategorien
                     const category = this.data.find(c => c.id === catId);
                     if(category) {
                         this.currentImages = category.images.map(src => ({ src: src, title: this.formatTitle(src) }));
@@ -360,7 +361,6 @@
             },
 
             reRender: function() {
-                // Bei Resize rendern wir ALLES neu, basierend auf den bereits geladenen Daten
                 if(this.processedImages.length === 0) return;
                 
                 document.getElementById('gallery-container').innerHTML = '';
@@ -368,8 +368,6 @@
                 if (this.currentCategory === 'home') {
                     this.renderGeometry(this.processedImages, true, 7);
                 } else {
-                    // Bei Kategorien: alles neu rendern, keine Puffer-Logik nötig (da wir alles haben was geladen ist)
-                    // Puffer ist für das Laden von Batches relevant, beim Resize behandeln wir alles als einen großen Batch
                     this.renderGeometry(this.processedImages, true);
                 }
             },
@@ -379,11 +377,9 @@
 
                 const trigger = document.getElementById('loading-trigger');
                 
-                // Wir haben alles geladen?
                 if (this.renderedCount >= this.currentImages.length) {
-                    // Wenn noch was im Buffer ist, müssen wir das jetzt rendern (letzte Waisen-Reihe)
                     if (this.streamBuffer.length > 0) {
-                        this.flushBuffer(true); // force flush
+                        this.flushBuffer(true); 
                     }
                     trigger.classList.remove('opacity-100');
                     return;
@@ -392,31 +388,22 @@
                 this.isLoading = true;
                 trigger.classList.add('opacity-100');
 
-                // Nächsten Batch laden
                 const nextBatchRaw = this.currentImages.slice(this.renderedCount, this.renderedCount + this.batchSize);
                 const loadedBatch = await Promise.all(nextBatchRaw.map(item => this.preloadImage(item)));
                 const validBatch = loadedBatch.filter(item => item !== null);
 
-                // Zum globalen Speicher hinzufügen
                 this.processedImages = [...this.processedImages, ...validBatch];
-                
-                // Zum Puffer hinzufügen
                 this.streamBuffer = [...this.streamBuffer, ...validBatch];
 
-                // Jetzt schauen, ob wir volle Reihen aus dem Puffer bauen können
                 this.processStreamBuffer();
 
                 this.renderedCount += nextBatchRaw.length;
                 this.isLoading = false;
                 
-                // Wenn wir fertig sind, trigger weg, sonst bleibt er (wenn viewport noch nicht voll)
                 if (this.renderedCount >= this.currentImages.length) {
-                     // Letzte Reste rausspülen
                      this.processStreamBuffer(true);
                      trigger.classList.remove('opacity-100');
                 } else {
-                    // Kleiner Check: Wenn nichts gerendert wurde (weil Bilder extrem breit waren?), 
-                    // könnte der Trigger noch sichtbar sein und Observer feuert gleich wieder. Das ist gut.
                     trigger.classList.remove('opacity-100');
                 }
             },
@@ -425,65 +412,49 @@
                 const container = document.getElementById('gallery-container');
                 const containerWidth = Math.floor(container.getBoundingClientRect().width);
                 
-                let startIndex = 0; // Wir arbeiten uns durch den Buffer
-                
-                // Wir bauen Reihen aus dem Buffer
+                let startIndex = 0; 
+                let batchRowIndex = 0; // Zähler für Verzögerung in diesem Batch
+
                 while(startIndex < this.streamBuffer.length) {
                     let rowAspectRatioSum = 0;
                     let currentImages = [];
                     let rowFound = false;
 
-                    // Versuche Bilder hinzuzufügen bis Zeile voll ist
                     for(let i = startIndex; i < this.streamBuffer.length; i++) {
                         const img = this.streamBuffer[i];
                         rowAspectRatioSum += img.ratio;
                         currentImages.push(img);
 
-                        // Berechnung der theoretischen Höhe bei aktueller Breite
-                        // height = (width - gaps) / sumRatios
                         const totalGapWidth = (currentImages.length - 1) * this.gap;
                         const availableWidth = containerWidth - totalGapWidth;
                         const potentialHeight = availableWidth / rowAspectRatioSum;
-
-                        // ENTSCHEIDUNGSLOGIK:
-                        // Normalerweise ist idealHeight ~300px.
-                        // Wenn potentialHeight < idealHeight, heißt das, die Bilder werden kleiner als gewünscht -> Zeile ist voll.
-                        // Da der User "Variable Höhen" erlaubt, erlauben wir eine Toleranz.
                         
                         if (potentialHeight < this.idealHeight) {
-                            // Wir haben den Punkt erreicht, wo die Zeile voll (oder leicht überfüllt) ist.
-                            // Rendern!
-                            this.renderRow(container, currentImages, potentialHeight, false);
-                            startIndex = i + 1; // Weiter beim nächsten Bild
+                            // Reihe voll -> Rendern mit Delay
+                            this.renderRow(container, currentImages, potentialHeight, false, batchRowIndex);
+                            batchRowIndex++; // Nächste Reihe kriegt mehr Delay
+
+                            startIndex = i + 1;
                             rowFound = true;
-                            break; // Raus aus innerer Loop, nächste Zeile starten
+                            break; 
                         }
                     }
 
-                    // Wenn wir durch den ganzen Buffer sind und keine Zeile voll wurde:
                     if (!rowFound) {
                         if (forceFlush) {
-                            // Es ist der allerletzte Rest -> Rendern als Waise
                             const restImages = this.streamBuffer.slice(startIndex);
                             if(restImages.length > 0) {
-                                // Berechne Ratio Summe für Rest
-                                const restRatio = restImages.reduce((acc, img) => acc + img.ratio, 0);
-                                this.renderRow(container, restImages, this.idealHeight, true); // true = orphan
+                                this.renderRow(container, restImages, this.idealHeight, true, batchRowIndex);
                             }
-                            startIndex = this.streamBuffer.length; // Fertig
+                            startIndex = this.streamBuffer.length; 
                         } else {
-                            // WARTEN! Wir rendern diese unvollständige Zeile NICHT.
-                            // Wir behalten die Bilder im Buffer (schneiden nur die weg, die wir schon gerendert haben)
                             break; 
                         }
                     }
                 }
-
-                // Buffer aufräumen: Nur behalten, was noch nicht gerendert wurde (ab startIndex)
                 this.streamBuffer = this.streamBuffer.slice(startIndex);
             },
 
-            // Hilfsfunktion für Resize oder Home (statisch)
             renderGeometry: function(images, isRedraw = false, maxRows = 0) {
                 const container = document.getElementById('gallery-container');
                 const containerWidth = Math.floor(container.getBoundingClientRect().width);
@@ -492,25 +463,13 @@
                 let rowAspectRatioSum = 0;
                 let rowsCreated = 0;
                 
-                // Für Lightbox Index müssen wir wissen, wo wir global starten. 
-                // Bei redraw ist processedImages die Quelle.
-                let globalIndexCounter = 0; 
-
                 for (let i = 0; i < images.length; i++) {
                     if (maxRows > 0 && rowsCreated >= maxRows) break;
 
                     const img = images[i];
-                    
-                    // Wir müssen den korrekten globalen Index finden
-                    // Wenn es ein Redraw ist, ist images == this.processedImages, also ist i der Index.
-                    // Wenn es ein initial render ist, ist es komplizierter, aber wir nutzen hier meist redraw logic.
-                    // Vereinfachung: Wir suchen das Bild in processedImages via src, falls nötig, oder nutzen i bei Full Redraw.
-                    
-                    // Bei Home Load nutzen wir temporäre Indizes
                     let actualIndex = isRedraw ? i : (this.processedImages.indexOf(img)); 
-                    if(actualIndex === -1) actualIndex = i; // Fallback
+                    if(actualIndex === -1) actualIndex = i; 
 
-                    // Objekt anreichern
                     const imgWithIndex = { ...img, globalIndex: actualIndex };
 
                     rowBuffer.push(imgWithIndex);
@@ -521,29 +480,29 @@
                     const potentialHeight = availableWidth / rowAspectRatioSum;
 
                     if (potentialHeight <= this.idealHeight) {
-                        this.renderRow(container, rowBuffer, potentialHeight, false);
+                        // Wir nutzen rowsCreated als Delay-Index für die Startseite (schöne Welle von oben nach unten)
+                        this.renderRow(container, rowBuffer, potentialHeight, false, rowsCreated);
                         rowBuffer = [];
                         rowAspectRatioSum = 0;
                         rowsCreated++;
                     }
                 }
 
-                // Orphans bei Home Mode (maxRows)
                 if (maxRows > 0 && rowBuffer.length > 0 && rowsCreated < maxRows) {
-                     this.renderRow(container, rowBuffer, this.idealHeight, true);
+                     this.renderRow(container, rowBuffer, this.idealHeight, true, rowsCreated);
                 } else if (maxRows === 0 && rowBuffer.length > 0) {
-                    // Normaler Redraw (Resize)
-                    this.renderRow(container, rowBuffer, this.idealHeight, true);
+                    this.renderRow(container, rowBuffer, this.idealHeight, true, rowsCreated);
                 }
             },
 
-            renderRow: function(container, rowImages, rowHeight, isOrphan) {
+            // NEU: Parameter delayIndex
+            renderRow: function(container, rowImages, rowHeight, isOrphan, delayIndex = 0) {
                 const rowDiv = document.createElement('div');
                 rowDiv.className = 'gallery-row';
                 
-                // Final Check: User erlaubt bis zu 5% beschnitt?
-                // Wir haben rowHeight berechnet.
-                // Wenn wir rowHeight direkt setzen, passt es mathematisch exakt in die Breite.
+                // STAGGERING: Wir verzögern jede Reihe um 100ms * Index
+                // Dadurch blenden sie nacheinander ein
+                rowDiv.style.animationDelay = (delayIndex * 150) + 'ms';
                 
                 if (isOrphan) {
                     rowHeight = this.idealHeight; 
@@ -556,18 +515,13 @@
                     const div = document.createElement('div');
                     div.className = 'img-item group';
                     
-                    // Lightbox Index finden (falls nicht im Objekt)
                     let idx = img.globalIndex;
                     if (idx === undefined) {
-                        // Fallback Suche in processed
                         idx = this.processedImages.findIndex(p => p.src === img.src);
                     }
                     div.onclick = () => this.openLightbox(idx);
                     
-                    // Breite berechnen: height * ratio
-                    // Wir nutzen flex-grow, um Rundungsfehler zu füllen
                     const imgWidth = rowHeight * img.ratio;
-                    
                     div.style.width = imgWidth + 'px'; 
                     div.style.flexBasis = imgWidth + 'px';
 
@@ -589,8 +543,6 @@
                 container.appendChild(rowDiv);
             },
             
-            // ... (Restliche Funktionen bleiben gleich: Observer, Lightbox, MobileMenu) ...
-
             setupObserver: function() {
                 if(this.observer) this.observer.disconnect();
                 const options = { root: null, rootMargin: '400px', threshold: 0.1 };

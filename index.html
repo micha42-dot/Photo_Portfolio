@@ -39,6 +39,7 @@
             opacity: 0; /* Startzustand */
             break-inside: avoid; /* Wichtig für Spalten */
             margin-bottom: 0; /* Gaps regelt das Flex-Parent */
+            width: 100%;
         }
 
         .img-item:hover .overlay {
@@ -187,7 +188,9 @@
             
             // Layout State
             columnCount: 3,
-            columns: [], // Array von Arrays mit Bildern für die Spalten
+            columnElements: [], 
+            // WICHTIG: Wir tracken die Höhe der Spalten in Pixeln
+            columnHeights: [], 
             
             lightboxIndex: 0,
             
@@ -257,16 +260,14 @@
 
                 if (newCount !== this.columnCount) {
                     this.columnCount = newCount;
-                    // Wenn sich Spalten ändern, müssen wir alles neu rendern
                     if (this.currentImages.length > 0) {
-                        this.renderedCount = 0; // Reset
-                        this.rebuildLayout();
+                        this.renderedCount = 0;
+                        this.filter(this.lastCategory || 'home');
                     }
                 }
             },
 
             handleResize: function() {
-                // Debounce simple
                 if (this.resizeTimeout) clearTimeout(this.resizeTimeout);
                 this.resizeTimeout = setTimeout(() => {
                     this.updateColumnCount();
@@ -274,12 +275,10 @@
             },
 
             filter: function(catId) {
-                // Reset State
+                this.lastCategory = catId;
                 this.renderedCount = 0;
-                this.columns = Array.from({ length: this.columnCount }, () => []);
                 this.isLoading = false;
                 
-                // Clear DOM
                 const container = document.getElementById('masonry-container');
                 container.innerHTML = ''; 
                 window.scrollTo({top: 0, behavior: 'smooth'});
@@ -288,7 +287,6 @@
                     let allImages = this.data.flatMap(cat => 
                         cat.images.map(src => ({ src: src, title: this.formatTitle(src) }))
                     );
-                    // Shuffle
                     for (let i = allImages.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [allImages[i], allImages[j]] = [allImages[j], allImages[i]];
@@ -299,30 +297,29 @@
                     this.currentImages = category ? category.images.map(src => ({ src: src, title: this.formatTitle(src) })) : [];
                 }
 
-                this.rebuildLayout(); // Struktur aufbauen
+                this.rebuildLayout(); 
                 this.setupObserver();
-                this.loadMore(); // Erste Bilder laden
+                this.loadMore(); 
             },
 
             rebuildLayout: function() {
                 const container = document.getElementById('masonry-container');
                 container.innerHTML = '';
-                
-                // Flex Container
-                container.className = "flex w-full gap-6 md:gap-8 items-start"; // Hier ist der horizontale Abstand
+                container.className = "flex w-full gap-6 md:gap-8 items-start"; 
 
-                // Spalten DIVs erstellen
                 this.columnElements = [];
+                // Initialisiere Höhen-Tracker mit 0
+                this.columnHeights = new Array(this.columnCount).fill(0);
+
                 for(let i=0; i < this.columnCount; i++) {
                     const col = document.createElement('div');
-                    // Jede Spalte ist flex-col mit gap für den vertikalen Abstand
-                    // flex-1 sorgt dafür, dass alle Spalten gleich breit sind
-                    col.className = "flex flex-col flex-1 gap-6 md:gap-8"; // Hier ist der vertikale Abstand (gap-y)
+                    col.className = "flex flex-col flex-1 gap-6 md:gap-8 min-w-0"; 
                     container.appendChild(col);
                     this.columnElements.push(col);
                 }
             },
 
+            // SMART LOAD: Bilder werden erst analysiert, dann in die kürzeste Spalte geworfen
             loadMore: function() {
                 if (this.isLoading) return;
                 
@@ -338,45 +335,67 @@
                     return;
                 }
 
-                // Bilder verteilen (Round Robin für einfache Verteilung)
-                // Wir nutzen hier einfach (index % columns), das erhält die Chronologie am besten.
+                let loadedInBatch = 0;
+                const totalInBatch = batch.length;
+
                 batch.forEach((imgData, index) => {
                     const globalIndex = this.renderedCount + index;
-                    const columnIndex = globalIndex % this.columnCount;
-                    const targetCol = this.columnElements[columnIndex];
-
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'img-item relative group w-full bg-gray-50 cursor-pointer overflow-hidden';
                     
-                    // Klick Event
-                    itemDiv.onclick = () => this.openLightbox(globalIndex);
+                    // Wir laden das Bild im Speicher, um die Größe zu kennen
+                    const tempImg = new Image();
+                    
+                    tempImg.onload = () => {
+                        // 1. Finde die aktuell kürzeste Spalte
+                        const shortestIndex = this.columnHeights.indexOf(Math.min(...this.columnHeights));
+                        const targetCol = this.columnElements[shortestIndex];
 
-                    // Bild
-                    const img = document.createElement('img');
-                    img.src = imgData.src;
-                    img.alt = imgData.title;
-                    img.className = "block w-full h-auto transition-transform duration-700 ease-out will-change-transform";
-                    img.loading = "lazy"; // Native Lazy Loading
+                        // 2. Erstelle das Element
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'img-item relative group w-full bg-gray-50 cursor-pointer overflow-hidden';
+                        itemDiv.onclick = () => this.openLightbox(globalIndex);
 
-                    // Overlay
-                    const overlay = document.createElement('div');
-                    overlay.className = "overlay absolute inset-0 bg-black/10 opacity-0 transition-opacity duration-300 pointer-events-none";
+                        const img = document.createElement('img');
+                        img.src = imgData.src;
+                        img.alt = imgData.title;
+                        img.className = "block w-full h-auto transition-transform duration-700 ease-out will-change-transform";
+                        
+                        const overlay = document.createElement('div');
+                        overlay.className = "overlay absolute inset-0 bg-black/10 opacity-0 transition-opacity duration-300 pointer-events-none";
 
-                    itemDiv.appendChild(img);
-                    itemDiv.appendChild(overlay);
-                    targetCol.appendChild(itemDiv);
+                        itemDiv.appendChild(img);
+                        itemDiv.appendChild(overlay);
+                        targetCol.appendChild(itemDiv);
+
+                        // 3. Update die virtuelle Höhe dieser Spalte
+                        // Wir berechnen die Höhe, die das Bild im Layout einnehmen wird
+                        // AspectRatio = height / width. Breite der Spalte ist ca. gleich.
+                        // Wir nutzen einfach die Aspect Ratio als Proxy für die Höhe.
+                        const aspectRatio = tempImg.height / tempImg.width;
+                        this.columnHeights[shortestIndex] += aspectRatio;
+
+                        // Check fertig
+                        checkDone();
+                    };
+
+                    tempImg.onerror = () => {
+                        checkDone();
+                    };
+
+                    tempImg.src = imgData.src;
                 });
-
+                
                 this.renderedCount += batch.length;
 
-                // Kurze Verzögerung für UX (Lade-Icon)
-                setTimeout(() => {
-                    this.isLoading = false;
-                    if (this.renderedCount >= this.currentImages.length) {
-                        trigger.classList.remove('opacity-100');
-                        if(this.observer) this.observer.disconnect();
+                const checkDone = () => {
+                    loadedInBatch++;
+                    if(loadedInBatch >= totalInBatch) {
+                        this.isLoading = false;
+                        if (this.renderedCount >= this.currentImages.length) {
+                            trigger.classList.remove('opacity-100');
+                            if(this.observer) this.observer.disconnect();
+                        }
                     }
-                }, 50);
+                };
             },
 
             setupObserver: function() {
@@ -415,7 +434,6 @@
                 const img = document.getElementById('lightbox-img');
                 const caption = document.getElementById('lightbox-caption');
                 
-                // Preload für smoothen Übergang
                 const tempImg = new Image();
                 tempImg.src = data.src;
                 tempImg.onload = () => { img.src = tempImg.src; };

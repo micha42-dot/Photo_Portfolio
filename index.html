@@ -229,6 +229,7 @@
             slideshowImages: [],
             currentSlideIdx: 0,
             activeSlideEl: 1,
+            lastKnownWindowPortrait: window.innerHeight > window.innerWidth,
             
             // Batch Loading
             renderedCount: 0,
@@ -333,8 +334,19 @@
             handleResize: function() {
                 if (this.resizeTimeout) clearTimeout(this.resizeTimeout);
                 this.resizeTimeout = setTimeout(() => {
+                    // Check if orientation flipped while on home view
+                    const isPortraitNow = window.innerHeight > window.innerWidth;
+                    if (this.lastCategory === 'home' && !this.isProjectView) {
+                        if (isPortraitNow !== this.lastKnownWindowPortrait) {
+                            this.lastKnownWindowPortrait = isPortraitNow;
+                            this.filter('home'); // Restart the slideshow to load new aspect ratio
+                            return;
+                        }
+                    }
+                    this.lastKnownWindowPortrait = isPortraitNow;
+                    
                     this.updateColumnCount();
-                }, 100);
+                }, 150);
             },
 
             filter: function(catId) {
@@ -432,23 +444,36 @@
                         // Stop loading if user navigated away
                         if (this.lastCategory !== 'home' || this.isProjectView) break;
 
-                        const isLandscape = await new Promise(resolve => {
+                        const [isLandscape, isPortrait] = await new Promise(resolve => {
                             const img = new Image();
-                            img.onload = () => resolve(img.width > img.height);
-                            img.onerror = () => resolve(false);
+                            img.onload = () => resolve([img.width > img.height, img.height > img.width]);
+                            img.onerror = () => resolve([false, false]);
                             img.src = imgData.src;
                         });
 
-                        if (isLandscape) {
+                        const windowIsPortrait = window.innerHeight > window.innerWidth;
+                        
+                        // Pick portrait images if screen is portrait, otherwise pick landscape images
+                        const matchesOrientation = windowIsPortrait ? isPortrait : isLandscape;
+
+                        if (matchesOrientation) {
                             this.slideshowImages.push(imgData);
                             
-                            // Immediately Show first landscape image
+                            // Immediately Show first matching image
                             if (this.slideshowImages.length === 1) {
                                 img1.src = imgData.src;
                                 img1.classList.remove('opacity-0');
                                 img1.classList.add('opacity-100');
                             }
                         }
+                    }
+                    
+                    // Fallback: If no images match the strict orientation, just use all of them
+                    if (this.slideshowImages.length === 0 && images.length > 0) {
+                        this.slideshowImages = images;
+                        img1.src = images[0].src;
+                        img1.classList.remove('opacity-0');
+                        img1.classList.add('opacity-100');
                     }
                 };
                 

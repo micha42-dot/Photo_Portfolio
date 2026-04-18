@@ -1,14 +1,21 @@
 window.projectsData = [
   {
-    id: "alexandra-road-park",
-    title: "Alexandra Road Park",
-    description: "A photographic survey of the iconic brutalist architecture of the Alexandra Road Estate in London.<br><br>The estate, designed by Neave Brown in 1968, is a prominent example of high-density, low-rise public housing and features striking concrete terraces that create a unique urban canyon.",
+    id: "botanischer-garten-muenchen",
+    title: "Botanischer Garten München",
+    description: "Eine fotografische Erkundung des Botanischen Gartens München-Nymphenburg<br><br>Der Botanische Garten München-Nymphenburg ist ein Ort, an dem wissenschaftliche Sammlung, gärtnerische Gestaltung und landschaftliche Atmosphäre zusammenkommen. Der 1914 eröffnete Garten gehört mit seinen großen Freiflächen und weitläufigen Gewächshäusern zu den wichtigsten botanischen Einrichtungen Europas.
+<br><br>
+Zwischen alten Gehölzen, Wasserflächen, Gewächshäusern und thematisch angelegten Gartenbereichen entfalten sich Pflanzen aus verschiedenen Klimazonen und Lebensräumen. Wege, Glasarchitektur und Vegetation erzeugen ein Wechselspiel aus Offenheit und Dichte, aus Struktur und Wachstum. Das wechselnde Licht prägt Blätter, Blüten und Räume immer wieder neu und schafft so einen Ort, an dem botanische Vielfalt und visuelle Wahrnehmung eng zusammenfinden.
+",
     images: [
-      "https://picsum.photos/seed/arch01/1200/800",
-      "https://picsum.photos/seed/arch02/800/1200",
-      "https://picsum.photos/seed/arch03/1200/800",
-      "https://picsum.photos/seed/arch04/800/1200",
-      "https://picsum.photos/seed/arch05/1200/800"
+      "projekte/botanischergarten/01.jpg",
+      "projekte/botanischergarten/02.jpg",
+      "projekte/botanischergarten/03.jpg",
+      "projekte/botanischergarten/04.jpg",
+      "projekte/botanischergarten/05.jpg",
+      "projekte/botanischergarten/06.jpg",
+      "projekte/botanischergarten/07.jpg",
+      "projekte/botanischergarten/08.jpg",
+      "projekte/botanischergarten/09.jpg"
     ]
   },
   {

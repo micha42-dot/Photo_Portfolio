@@ -93,6 +93,15 @@
                         <div id="desktop-dropdown-items"></div>
                     </div>
                 </div>
+                <div class="relative group cursor-pointer py-4">
+                    <span class="text-xs font-display font-medium tracking-[0.15em] uppercase text-gray-400 group-hover:text-black transition-colors flex items-center gap-1">
+                        Projekte
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </span>
+                    <div class="dropdown-menu absolute left-0 top-full bg-white border border-gray-100 shadow-xl p-2 min-w-[200px] flex flex-col gap-1">
+                        <div id="project-dropdown-items"></div>
+                    </div>
+                </div>
                 <div class="h-4 w-[1px] bg-gray-300 mx-2"></div>
                 <a href="info.html" class="text-xs font-display font-medium tracking-[0.15em] uppercase text-gray-400 hover:text-black transition-colors">
                     Info
@@ -112,8 +121,14 @@
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
-        <nav id="mobile-nav-items" class="flex flex-col gap-6 text-xl font-display font-light uppercase tracking-widest text-center">
+        <nav id="mobile-nav-items" class="flex flex-col gap-4 text-xl font-display font-light uppercase tracking-widest text-center">
             <!-- Items via JS -->
+        </nav>
+        
+        <div class="mt-8 mb-4 h-[1px] w-12 bg-gray-200 mx-auto"></div>
+        <h4 class="text-center text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Projekte</h4>
+        <nav id="mobile-project-items" class="flex flex-col gap-4 text-lg font-display font-light uppercase tracking-widest text-center">
+            <!-- Project Items via JS -->
         </nav>
         <a href="info.html" class="mt-8 text-center text-xl font-display font-light uppercase tracking-widest text-gray-400">Info & Kontakt</a>
     </div>
@@ -121,6 +136,12 @@
     <!-- MAIN GALLERY -->
     <main class="flex-grow pt-24 px-4 md:px-8 w-full max-w-[1800px] mx-auto min-h-screen">
         
+        <!-- PROJECT HEADER (Hidden by default) -->
+        <div id="project-header" class="hidden w-full max-w-4xl mx-auto text-center py-12 md:py-20 px-6">
+            <h1 id="project-title" class="font-display font-bold text-3xl md:text-5xl tracking-tight mb-6">Project Title</h1>
+            <p id="project-desc" class="font-sans text-gray-500 font-light text-sm md:text-base max-w-2xl mx-auto leading-relaxed">Project Description</p>
+        </div>
+
         <div id="no-data-warning" class="hidden w-full max-w-2xl mx-auto text-center py-12 px-6 border border-yellow-200 bg-yellow-50 rounded-lg">
             <h3 class="text-yellow-800 font-bold mb-2">Galerie wird geladen...</h3>
             <p class="text-yellow-700 text-sm mb-4">Falls hier dauerhaft keine Bilder erscheinen:</p>
@@ -129,6 +150,12 @@
                 <p>2. Warte 1-2 Minuten nach dem Hochladen, GitHub verarbeitet die Bilder gerade.</p>
                 <p>3. Wenn du lokal testest, musst du die Datei <code>data.js</code> manuell bearbeiten.</p>
             </div>
+        </div>
+
+        <!-- SLIDESHOW (Home only) -->
+        <div id="home-slideshow" class="hidden relative w-full h-[70vh] md:h-[85vh] bg-gray-50 overflow-hidden mb-12 rounded-sm">
+            <img id="slideshow-img-1" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-100" src="" alt="">
+            <img id="slideshow-img-2" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-0" src="" alt="">
         </div>
 
         <!-- CONTAINER FÜR DIE SPALTEN -->
@@ -179,12 +206,15 @@
 
     <!-- DATA -->
     <script src="data.js"></script>
+    <script src="projects.js"></script>
 
     <!-- APP LOGIC -->
     <script>
         const app = {
             data: [],
+            projects: [],
             currentImages: [],    
+            isProjectView: false,
             
             // Layout State
             columnCount: 3,
@@ -194,6 +224,12 @@
             
             lightboxIndex: 0,
             
+            // Slideshow State
+            slideshowInterval: null,
+            slideshowImages: [],
+            currentSlideIdx: 0,
+            activeSlideEl: 1,
+            
             // Batch Loading
             renderedCount: 0,
             batchSize: 12,
@@ -201,13 +237,16 @@
             observer: null,
 
             init: function() {
-                if(!window.portfolioData || window.portfolioData.length === 0) {
-                    console.warn("data.js ist leer.");
-                    document.getElementById('no-data-warning').classList.remove('hidden');
-                    return;
-                }
+                this.data = window.portfolioData || [];
+                this.projects = window.projectsData || [];
                 
-                this.data = window.portfolioData;
+                if (this.data.length === 0 && this.projects.length === 0) {
+                    console.warn("Weder Kategorien noch Projekte vorhanden.");
+                    document.getElementById('no-data-warning').classList.remove('hidden');
+                } else if (this.data.length === 0 && this.projects.length > 0) {
+                    document.getElementById('no-data-warning').classList.add('hidden');
+                }
+
                 document.getElementById('year').textContent = new Date().getFullYear();
 
                 this.setupNavigation();
@@ -220,7 +259,11 @@
                 // Initiale Spaltenberechnung
                 this.updateColumnCount();
 
-                this.filter('home'); 
+                if (this.data.length > 0) {
+                    this.filter('home'); 
+                } else if (this.projects.length > 0) {
+                    this.showProject(this.projects[0].id);
+                }
                 
                 document.addEventListener('keydown', (e) => {
                     if (document.getElementById('lightbox').classList.contains('opacity-0')) return;
@@ -241,14 +284,30 @@
                     dropBtn.className = "text-left w-full px-4 py-2 text-xs font-display font-medium tracking-widest uppercase text-gray-500 hover:bg-gray-50 hover:text-black transition-colors";
                     dropBtn.onclick = () => this.filter(cat.id);
                     dropContainer.appendChild(dropBtn);
-                    mobNav.appendChild(this.createMobileLink(cat.id, cat.label));
+                    mobNav.appendChild(this.createMobileLink(cat.id, cat.label, false));
+                });
+
+                const projContainer = document.getElementById('project-dropdown-items');
+                const mobProjNav = document.getElementById('mobile-project-items');
+
+                this.projects.forEach(proj => {
+                    const dropBtn = document.createElement('button');
+                    dropBtn.textContent = proj.title;
+                    dropBtn.className = "text-left w-full px-4 py-2 text-xs font-display font-medium tracking-widest uppercase text-gray-500 hover:bg-gray-50 hover:text-black transition-colors";
+                    dropBtn.onclick = () => this.showProject(proj.id);
+                    if(projContainer) projContainer.appendChild(dropBtn);
+                    if(mobProjNav) mobProjNav.appendChild(this.createMobileLink(proj.id, proj.title, true));
                 });
             },
 
-            createMobileLink: function(id, label) {
+            createMobileLink: function(id, label, isProject) {
                 const btn = document.createElement('button');
                 btn.textContent = label;
-                btn.onclick = () => { this.filter(id); this.toggleMobileMenu(); };
+                btn.onclick = () => { 
+                    if(isProject) this.showProject(id); 
+                    else this.filter(id); 
+                    this.toggleMobileMenu(); 
+                };
                 return btn;
             },
 
@@ -262,7 +321,11 @@
                     this.columnCount = newCount;
                     if (this.currentImages.length > 0) {
                         this.renderedCount = 0;
-                        this.filter(this.lastCategory || 'home');
+                        if (this.isProjectView) {
+                            this.showProject(this.lastCategory);
+                        } else {
+                            this.filter(this.lastCategory || 'home');
+                        }
                     }
                 }
             },
@@ -275,15 +338,23 @@
             },
 
             filter: function(catId) {
+                this.isProjectView = false;
                 this.lastCategory = catId;
                 this.renderedCount = 0;
                 this.isLoading = false;
+                
+                this.stopSlideshow();
+                document.getElementById('project-header').classList.add('hidden');
                 
                 const container = document.getElementById('masonry-container');
                 container.innerHTML = ''; 
                 window.scrollTo({top: 0, behavior: 'smooth'});
 
                 if (catId === 'home') {
+                    document.getElementById('masonry-container').classList.add('hidden');
+                    document.getElementById('loading-trigger').classList.add('hidden');
+                    document.getElementById('home-slideshow').classList.remove('hidden');
+                    
                     let allImages = this.data.flatMap(cat => 
                         cat.images.map(src => ({ src: src, title: this.formatTitle(src) }))
                     );
@@ -291,15 +362,124 @@
                         const j = Math.floor(Math.random() * (i + 1));
                         [allImages[i], allImages[j]] = [allImages[j], allImages[i]];
                     }
-                    this.currentImages = allImages;
+                    this.startSlideshow(allImages);
                 } else {
+                    document.getElementById('home-slideshow').classList.add('hidden');
+                    document.getElementById('masonry-container').classList.remove('hidden');
+                    document.getElementById('loading-trigger').classList.remove('hidden');
+                    
                     const category = this.data.find(c => c.id === catId);
                     this.currentImages = category ? category.images.map(src => ({ src: src, title: this.formatTitle(src) })) : [];
+                    this.rebuildLayout(); 
+                    this.setupObserver();
+                    this.loadMore(); 
                 }
+            },
 
+            showProject: function(projId) {
+                this.isProjectView = true;
+                this.lastCategory = projId;
+                this.renderedCount = 0;
+                this.isLoading = false;
+                
+                this.stopSlideshow();
+                document.getElementById('home-slideshow').classList.add('hidden');
+                document.getElementById('masonry-container').classList.remove('hidden');
+                document.getElementById('loading-trigger').classList.remove('hidden');
+                
+                const project = this.projects.find(p => p.id === projId);
+                if (!project) return;
+                
+                const header = document.getElementById('project-header');
+                header.classList.remove('hidden');
+                document.getElementById('project-title').textContent = project.title;
+                document.getElementById('project-desc').innerHTML = project.description;
+                
+                const container = document.getElementById('masonry-container');
+                container.innerHTML = ''; 
+                window.scrollTo({top: 0, behavior: 'smooth'});
+                
+                this.currentImages = project.images.map(src => ({ src: src, title: this.formatTitle(src) }));
+                
                 this.rebuildLayout(); 
                 this.setupObserver();
                 this.loadMore(); 
+            },
+
+            stopSlideshow: function() {
+                if (this.slideshowInterval) {
+                    clearInterval(this.slideshowInterval);
+                    this.slideshowInterval = null;
+                }
+            },
+
+            startSlideshow: function(images) {
+                this.slideshowImages = [];
+                this.currentSlideIdx = 0;
+                this.activeSlideEl = 1;
+                
+                const img1 = document.getElementById('slideshow-img-1');
+                const img2 = document.getElementById('slideshow-img-2');
+                
+                img1.classList.remove('opacity-100');
+                img1.classList.add('opacity-0');
+                img2.classList.remove('opacity-100');
+                img2.classList.add('opacity-0');
+
+                // Process images sequentially to test aspect ratio
+                const processImages = async () => {
+                    for (let imgData of images) {
+                        // Stop loading if user navigated away
+                        if (this.lastCategory !== 'home' || this.isProjectView) break;
+
+                        const isLandscape = await new Promise(resolve => {
+                            const img = new Image();
+                            img.onload = () => resolve(img.width > img.height);
+                            img.onerror = () => resolve(false);
+                            img.src = imgData.src;
+                        });
+
+                        if (isLandscape) {
+                            this.slideshowImages.push(imgData);
+                            
+                            // Immediately Show first landscape image
+                            if (this.slideshowImages.length === 1) {
+                                img1.src = imgData.src;
+                                img1.classList.remove('opacity-0');
+                                img1.classList.add('opacity-100');
+                            }
+                        }
+                    }
+                };
+                
+                processImages();
+
+                this.slideshowInterval = setInterval(() => {
+                    if (this.slideshowImages.length > 1) {
+                        this.currentSlideIdx = (this.currentSlideIdx + 1) % this.slideshowImages.length;
+                        const nextSrc = this.slideshowImages[this.currentSlideIdx].src;
+
+                        if (this.activeSlideEl === 1) {
+                            img2.src = nextSrc;
+                            setTimeout(() => {
+                                img2.classList.remove('opacity-0');
+                                img2.classList.add('opacity-100');
+                                img1.classList.remove('opacity-100');
+                                img1.classList.add('opacity-0');
+                                this.activeSlideEl = 2;
+                            }, 50);
+                        } else {
+                            img1.src = nextSrc;
+                            setTimeout(() => {
+                                 img1.classList.remove('opacity-0');
+                                 img1.classList.add('opacity-100');
+                                 img2.classList.remove('opacity-100');
+                                 img2.classList.add('opacity-0');
+                                 this.activeSlideEl = 1;
+                            }, 50);
+                        }
+                    }
+                }, 4000); 
             },
 
             rebuildLayout: function() {

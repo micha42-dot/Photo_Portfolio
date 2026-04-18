@@ -1,1 +1,16 @@
-{}
+{
+  "name": "michael-foertsch-portfolio",
+  "version": "1.0.0",
+  "description": "Portfolio Website",
+  "scripts": {
+    "dev": "vite --port 3000 --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview",
+    "scan": "node scan.js"
+  },
+  "author": "Michael Förtsch",
+  "license": "ISC",
+  "devDependencies": {
+    "vite": "^8.0.8"
+  }
+}
